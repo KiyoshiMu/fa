@@ -1,0 +1,16 @@
+{
+  "name": "fa-monorepo",
+  "private": true,
+  "type": "module",
+  "description": "Financial Advisor Monorepo",
+  "workspaces": [
+    "app/frontend",
+    "app/backend"
+  ],
+  "dependencies": {
+    "@google/genai": "^1.50.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "dotenv": "^17.4.2"
+  }
+}

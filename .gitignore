@@ -6,3 +6,4 @@ build/
 .antigravity/
 production_artifacts/
 *.log
+.vercel

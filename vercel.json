@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "app/backend/src/server.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "app/frontend/index.html"
+    }
+  ],
+  "builds": [
+    {
+      "src": "app/backend/src/server.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "app/frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    }
+  ]
+}
