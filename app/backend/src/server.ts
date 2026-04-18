@@ -15,7 +15,7 @@ export default app;
 /**
  * Health Check
  */
-app.get('/health', (req: Request, res: Response) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
