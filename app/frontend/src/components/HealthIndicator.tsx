@@ -28,7 +28,7 @@ const HealthIndicator: React.FC = () => {
                     ? 'bg-green-500/10 border-green-500/20 text-green-400 group-hover:bg-green-500/20' 
                     : status === 'ERROR' 
                     ? 'bg-red-500/10 border-red-500/20 text-red-400' 
-                    : 'bg-white/5 border-white/10 text-white/20'
+                    : 'bg-[hsl(var(--sidebar-foreground))]/5 border-[hsl(var(--sidebar-foreground))]/10 text-[hsl(var(--sidebar-foreground))]/20'
             }`}>
                 {status === 'OK' ? (
                     <>
@@ -43,8 +43,8 @@ const HealthIndicator: React.FC = () => {
             </div>
             
             <div className="hidden sm:block">
-                <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-none mb-1">System Health</div>
-                <div className="text-[11px] font-black text-white/60 tracking-tighter uppercase leading-none">
+                <div className="text-[10px] font-bold text-[hsl(var(--sidebar-foreground))]/30 uppercase tracking-widest leading-none mb-1">System Health</div>
+                <div className="text-[11px] font-black text-[hsl(var(--sidebar-foreground))]/60 tracking-tighter uppercase leading-none">
                     {status === 'OK' ? 'Backend Operational' : status === 'ERROR' ? 'Connection Lost' : 'Checking Link...'}
                 </div>
             </div>

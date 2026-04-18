@@ -154,9 +154,9 @@ const InvestmentProfiler: React.FC = () => {
     };
 
     const renderQuestion = (q: typeof QUESTIONS[0], idx: number) => (
-        <div key={q.id} className="glass-card p-6 border border-white/5 hover:border-white/10 transition-all duration-500 animate-in fade-in slide-in-from-right-4">
+        <div key={q.id} className="glass-card p-6 border border-border hover:border-border/60 transition-all duration-500 animate-in fade-in slide-in-from-right-4">
             <div className="flex items-start gap-4">
-                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary-500/10 text-primary-400 text-sm font-bold border border-primary-500/20">
+                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary-500/5 text-primary-500 text-sm font-bold border border-primary-500/10">
                     {idx + 1}
                 </span>
                 <div className="flex-1 space-y-4">
@@ -177,8 +177,8 @@ const InvestmentProfiler: React.FC = () => {
                                     onClick={() => q.type === 'select' ? handleSelectChange(q.id, opt.id) : handlePointChange(q.id, (opt as any).points)}
                                     className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 ${
                                         isSelected
-                                            ? 'bg-primary-600/20 border-primary-500 text-primary-400 shadow-[0_0_15px_rgba(14,165,233,0.1)]'
-                                            : 'bg-white/5 border-white/5 text-foreground/40 hover:bg-white/10 hover:border-white/20'
+                                            ? 'bg-primary-500/10 border-primary-500 text-primary-500 shadow-[0_0_15px_rgba(14,165,233,0.1)]'
+                                            : 'bg-secondary border-border text-foreground/40 hover:bg-secondary/80 hover:border-border/60'
                                     }`}
                                 >
                                     {opt.label}
@@ -207,21 +207,21 @@ const InvestmentProfiler: React.FC = () => {
                     {isWizard ? (
                         <div className="space-y-6">
                             {renderQuestion(QUESTIONS[currentStep], currentStep)}
-                            <div className="flex items-center justify-between gap-4 p-4 glass-card bg-white/5">
+                            <div className="flex items-center justify-between gap-4 p-4 glass-card bg-secondary/40">
                                 <button
                                     disabled={currentStep === 0}
                                     onClick={() => setCurrentStep(prev => prev - 1)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white/40 hover:text-white disabled:opacity-0 transition-all"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground disabled:opacity-0 transition-all font-mono"
                                 >
                                     <ChevronLeft className="w-4 h-4" /> Back
                                 </button>
-                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/20">
                                     Step {currentStep + 1} of {QUESTIONS.length}
                                 </div>
                                 <button
                                     disabled={currentStep === QUESTIONS.length - 1 || !answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] && answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] !== 0}
                                     onClick={() => setCurrentStep(prev => prev + 1)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white/40 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed transition-all font-mono"
                                 >
                                     Next <ChevronRight className="w-4 h-4" />
                                 </button>
@@ -237,9 +237,9 @@ const InvestmentProfiler: React.FC = () => {
                         <button
                             onClick={handleGenerate}
                             disabled={loading || !isComplete}
-                            className="w-full relative group px-8 py-5 bg-primary-600 hover:bg-primary-500 text-white font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(2,132,199,0.3)] hover:shadow-[0_0_30px_rgba(2,132,199,0.5)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 overflow-hidden"
+                            className="w-full relative group px-8 py-5 bg-primary-600 hover:bg-primary-500 text-white font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(224,242,254,0.1)] hover:shadow-primary-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 overflow-hidden"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                             {loading ? (
                                 <Loader2 className="w-6 h-6 animate-spin" />
                             ) : (
@@ -265,50 +265,50 @@ const InvestmentProfiler: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/30 font-bold uppercase tracking-tighter">Annual Return (EST)</div>
-                                            <div className="text-2xl font-black text-green-400">
+                                            <div className="text-2xl font-black text-green-500">
                                                 {(profile.returnRate * 100).toFixed(1)}%
                                             </div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/30 font-bold uppercase tracking-tighter">Monthly Yield</div>
-                                            <div className="text-2xl font-black text-primary-400">
+                                            <div className="text-2xl font-black text-primary-500">
                                                 {(profile.monthlyYield * 100).toFixed(2)}%
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 text-[10px] text-foreground/40 italic leading-relaxed">
+                                    <div className="p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 text-[10px] text-foreground/50 italic leading-relaxed">
                                         <Info className="w-3 h-3 mb-2 opacity-50" />
                                         illustrative purposes only. Actual results will vary based on market conditions.
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            <div className="glass-card p-12 border-white/5 flex flex-col items-center justify-center text-center space-y-4 opacity-60">
-                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-2">
-                                    <Info className="w-8 h-8 text-foreground/10" />
+                            <div className="glass-card p-12 border-border/40 flex flex-col items-center justify-center text-center space-y-4 opacity-100">
+                                <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-2">
+                                    <Info className="w-8 h-8 text-primary-500/20" />
                                 </div>
-                                <h3 className="text-lg font-bold text-foreground/20 leading-tight">Evaluation Pending</h3>
-                                <p className="text-xs text-foreground/20 italic">Questionnaire data required to generate risk profile.</p>
+                                <h3 className="text-lg font-bold text-foreground/40 leading-tight">Evaluation Pending</h3>
+                                <p className="text-xs text-foreground/30 italic">Questionnaire data required to generate risk profile.</p>
                             </div>
                         )}
 
-                        <div className="glass-card p-6 border-white/5 bg-white/2">
+                        <div className="glass-card p-6 border-border/40 bg-secondary/20">
                             <h4 className="text-[10px] font-black text-foreground/40 mb-4 flex items-center gap-2 uppercase tracking-widest">
                                 <CheckCircle2 className="w-4 h-4 text-primary-500/50" />
                                 Progress Tracking
                             </h4>
                             <div className="space-y-4">
-                                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                                     <div 
-                                        className="h-full bg-gradient-to-r from-primary-600 to-blue-400 transition-all duration-500" 
+                                        className="h-full bg-gradient-to-r from-primary-600 to-blue-500 transition-all duration-500" 
                                         style={{ width: `${(answeredCount / QUESTIONS.length) * 100}%` }}
                                     />
                                 </div>
-                                <div className="flex justify-between text-[10px] font-black text-foreground/30 uppercase tracking-widest">
+                                <div className="flex justify-between text-[10px] font-black text-foreground/40 uppercase tracking-widest">
                                     <span>{answeredCount} / {QUESTIONS.length} Complete</span>
                                     <span>{answeredCount === QUESTIONS.length ? 'Finalized' : 'In Progress'}</span>
                                 </div>

@@ -59,12 +59,12 @@ const App: React.FC = () => {
                                 </div>
                                 <div>
                                     <h1 className="text-xl font-black bg-gradient-to-br from-[hsl(var(--sidebar-foreground))] to-[hsl(var(--sidebar-foreground))]/60 bg-clip-text text-transparent italic">FA Advisor</h1>
-                                    <div className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.2em] leading-none mt-1">v2.0 Premium</div>
+                                    <div className="text-[10px] font-bold text-primary-500 uppercase tracking-[0.2em] leading-none mt-1">v2.0 Premium</div>
                                 </div>
                             </div>
                             <button 
                                 onClick={() => setIsMenuOpen(false)}
-                                className="lg:hidden p-2 text-white/40 hover:text-white"
+                                className="lg:hidden p-2 text-[hsl(var(--sidebar-foreground))]/40 hover:text-[hsl(var(--sidebar-foreground))]"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -80,8 +80,8 @@ const App: React.FC = () => {
                                     }}
                                     className={`w-full group flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 relative overflow-hidden ${
                                         activeTab === item.id 
-                                            ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20' 
-                                            : 'text-white/40 hover:bg-white/5 border border-transparent'
+                                            ? 'bg-primary-500/10 text-primary-500 border border-primary-500/20' 
+                                            : 'text-[hsl(var(--sidebar-foreground))]/40 hover:bg-[hsl(var(--sidebar-foreground))]/5 border border-transparent'
                                     }`}
                                 >
                                     <div className={`p-2 rounded-xl transition-all duration-300 ${activeTab === item.id ? 'bg-primary-500 text-white' : 'bg-[hsl(var(--sidebar-foreground))]/5 group-hover:bg-[hsl(var(--sidebar-foreground))]/10'}`}>
@@ -98,21 +98,21 @@ const App: React.FC = () => {
                             ))}
                         </nav>
 
-                        <div className="mt-auto space-y-4 pt-6 border-t border-white/5">
+                        <div className="mt-auto space-y-4 pt-6 border-t border-[hsl(var(--sidebar-border))]">
                             <button
                                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                                className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all border border-white/5 group"
+                                className="w-full flex items-center justify-between p-4 rounded-2xl bg-[hsl(var(--sidebar-foreground))]/5 hover:bg-[hsl(var(--sidebar-foreground))]/10 transition-all border border-[hsl(var(--sidebar-foreground))]/10 group"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-xl bg-primary-500/10 text-primary-400">
+                                    <div className="p-2 rounded-xl bg-primary-500/10 text-primary-500">
                                         {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                                     </div>
-                                    <span className="text-sm font-bold text-white/60 group-hover:text-white/90">
+                                    <span className="text-sm font-bold text-[hsl(var(--sidebar-foreground))]/60 group-hover:text-[hsl(var(--sidebar-foreground))]">
                                         {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
                                     </span>
                                 </div>
-                                <div className={`w-10 h-5 rounded-full relative transition-colors ${theme === 'dark' ? 'bg-primary-600' : 'bg-slate-700'}`}>
-                                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${theme === 'dark' ? 'right-1' : 'left-1'}`} />
+                                <div className={`w-10 h-5 rounded-full relative transition-colors ${theme === 'dark' ? 'bg-primary-600' : 'bg-slate-300'}`}>
+                                    <div className={`absolute top-1 w-3 h-3 bg-white shadow-sm rounded-full transition-all ${theme === 'dark' ? 'right-1' : 'left-1'}`} />
                                 </div>
                             </button>
                             <HealthIndicator />
@@ -132,11 +132,11 @@ const App: React.FC = () => {
                         </button>
 
                         <div className="flex items-center gap-6 ml-auto">
-                            <div className="hidden sm:flex items-center gap-4 py-1 px-4 bg-white/5 rounded-full border border-white/10">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Connect</span>
-                                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors"><Activity className="w-4 h-4" /></a>
-                                <div className="w-[1px] h-3 bg-white/10" />
-                                <a href="#" className="text-white/40 hover:text-white transition-colors"><ExternalLink className="w-4 h-4" /></a>
+                            <div className="hidden sm:flex items-center gap-4 py-1 px-4 bg-foreground/5 rounded-full border border-foreground/10">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">Connect</span>
+                                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-foreground/40 hover:text-foreground transition-colors"><Activity className="w-4 h-4" /></a>
+                                <div className="w-[1px] h-3 bg-foreground/10" />
+                                <a href="#" className="text-foreground/40 hover:text-foreground transition-colors"><ExternalLink className="w-4 h-4" /></a>
                             </div>
                         </div>
                     </header>
@@ -149,8 +149,8 @@ const App: React.FC = () => {
                     </div>
 
                     {/* Footer */}
-                    <footer className="mt-20 border-t border-white/5 py-12 px-6 lg:px-12 text-center">
-                        <div className="text-[12px] font-bold text-white/20 uppercase tracking-[0.3em]">
+                    <footer className="mt-20 border-t border-border py-12 px-6 lg:px-12 text-center">
+                        <div className="text-[12px] font-bold text-foreground/20 uppercase tracking-[0.3em]">
                             Financial Advisor Dashboard • Built with Agentic Intelligence
                         </div>
                     </footer>

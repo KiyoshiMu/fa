@@ -61,17 +61,17 @@ const CashFlowHub: React.FC = () => {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-white mb-2">Cash Flow Hub</h2>
-                    <p className="text-blue-200/60 max-w-2xl">
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground mb-2">Cash Flow Hub</h2>
+                    <p className="text-foreground/60 max-w-2xl">
                         Monitor your income and expenses to ensure a healthy 50/30/20 balance. Use AI to automatically categorize your spending from bank statements.
                     </p>
                 </div>
 
-                <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 backdrop-blur-xl">
+                <div className="flex bg-secondary p-1 rounded-2xl border border-border">
                     <button
                         onClick={() => setMode('manual')}
                         className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-                            mode === 'manual' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-white/40 hover:text-white/60'
+                            mode === 'manual' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-foreground/40 hover:text-foreground/60'
                         }`}
                     >
                         <List className="w-4 h-4" /> Manual
@@ -79,7 +79,7 @@ const CashFlowHub: React.FC = () => {
                     <button
                         onClick={() => setMode('ai')}
                         className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-                            mode === 'ai' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-white/40 hover:text-white/60'
+                            mode === 'ai' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-foreground/40 hover:text-foreground/60'
                         }`}
                     >
                         <Brain className="w-4 h-4" /> AI Extract
@@ -90,19 +90,19 @@ const CashFlowHub: React.FC = () => {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <div className="xl:col-span-2 space-y-6">
                     {mode === 'manual' ? (
-                        <div className="glass-card overflow-hidden border-white/5">
-                            <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
-                                <span className="text-xs font-bold text-white/40 uppercase tracking-widest">Transaction List</span>
+                        <div className="glass-card overflow-hidden border-border/40">
+                            <div className="p-4 bg-secondary/50 border-b border-border/40 flex justify-between items-center">
+                                <span className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Transaction List</span>
                                 <button
                                     onClick={handleAddTransaction}
-                                    className="p-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 rounded-lg transition-colors border border-primary-500/20"
+                                    className="p-2 bg-primary-500/5 hover:bg-primary-500/10 text-primary-500 rounded-lg transition-colors border border-primary-500/10"
                                 >
                                     <Plus className="w-4 h-4" />
                                 </button>
                             </div>
                             <div className="max-h-[500px] overflow-y-auto">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="text-[10px] text-white/30 uppercase tracking-tighter sticky top-0 bg-slate-900/90 backdrop-blur-md">
+                                    <thead className="text-[10px] text-foreground/50 uppercase tracking-tighter sticky top-0 bg-background/90 backdrop-blur-md">
                                         <tr>
                                             <th className="px-6 py-4 font-bold">Date</th>
                                             <th className="px-6 py-4 font-bold">Description</th>
@@ -110,15 +110,15 @@ const CashFlowHub: React.FC = () => {
                                             <th className="px-6 py-4 font-bold text-right">Amount</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-white/5">
+                                    <tbody className="divide-y divide-border/20">
                                         {transactions.map(tx => (
-                                            <tr key={tx.id} className="hover:bg-white/5 transition-colors group">
+                                            <tr key={tx.id} className="hover:bg-secondary/40 transition-colors group">
                                                 <td className="px-6 py-3 whitespace-nowrap">
                                                     <input
                                                         type="date"
                                                         value={tx.date}
                                                         onChange={(e) => handleUpdateTransaction(tx.id, 'date', e.target.value)}
-                                                        className="bg-transparent text-white/80 focus:outline-none w-full"
+                                                        className="bg-transparent text-foreground/80 focus:outline-none w-full"
                                                     />
                                                 </td>
                                                 <td className="px-6 py-3">
@@ -127,19 +127,19 @@ const CashFlowHub: React.FC = () => {
                                                         placeholder="Description..."
                                                         value={tx.description}
                                                         onChange={(e) => handleUpdateTransaction(tx.id, 'description', e.target.value)}
-                                                        className="bg-transparent text-white focus:outline-none w-full placeholder:text-white/10"
+                                                        className="bg-transparent text-foreground focus:outline-none w-full placeholder:text-foreground/30"
                                                     />
                                                 </td>
                                                 <td className="px-6 py-3">
                                                     <select
                                                         value={tx.category}
                                                         onChange={(e) => handleUpdateTransaction(tx.id, 'category', e.target.value as any)}
-                                                        className="bg-transparent text-white/60 focus:outline-none cursor-pointer"
+                                                        className="bg-transparent text-foreground/60 focus:outline-none cursor-pointer"
                                                     >
-                                                        <option className="bg-slate-900" value="Income">Income</option>
-                                                        <option className="bg-slate-900" value="Fixed">Fixed (Needs)</option>
-                                                        <option className="bg-slate-900" value="Variable">Variable (Wants)</option>
-                                                        <option className="bg-slate-900" value="Savings">Savings/Debt</option>
+                                                        <option className="bg-background" value="Income">Income</option>
+                                                        <option className="bg-background" value="Fixed">Fixed (Needs)</option>
+                                                        <option className="bg-background" value="Variable">Variable (Wants)</option>
+                                                        <option className="bg-background" value="Savings">Savings/Debt</option>
                                                     </select>
                                                 </td>
                                                 <td className="px-6 py-3 text-right">
@@ -165,21 +165,21 @@ const CashFlowHub: React.FC = () => {
                     ) : (
                         <div className="glass-card p-6 border-primary-500/20 bg-primary-500/5">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 bg-primary-500/10 rounded-2xl text-primary-400 border border-primary-500/20">
+                                <div className="p-3 bg-primary-500/5 rounded-2xl text-primary-500 border border-primary-500/10">
                                     <Brain className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-white">AI Statement Processor</h3>
-                                    <p className="text-xs text-blue-200/40">Paste raw text from your bank or CC statement below.</p>
+                                    <h3 className="text-lg font-bold text-foreground">AI Statement Processor</h3>
+                                    <p className="text-xs text-foreground/40 italic">Paste raw text from your bank or CC statement below.</p>
                                 </div>
                             </div>
                             <textarea
-                                className="w-full h-64 bg-slate-900/50 border border-white/5 rounded-2xl p-6 text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 placeholder:text-white/5 mb-4"
+                                className="w-full h-64 bg-secondary/50 border border-border rounded-2xl p-6 text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 placeholder:text-foreground/30 mb-4"
                                 placeholder="Example:&#10;APR 01 MAIN ST RENT -1800.00&#10;APR 05 STARBUCKS -6.50&#10;APR 15 EMPLOYER PAYROLL 4500.00..."
                                 value={aiInput}
                                 onChange={(e) => setAiInput(e.target.value)}
                             />
-                            <p className="text-[10px] text-blue-200/30 italic mb-6">
+                            <p className="text-[10px] text-foreground/30 italic mb-6">
                                 * Your data is processed securely via Google Gemini. No personal info is stored.
                             </p>
                         </div>
@@ -198,15 +198,15 @@ const CashFlowHub: React.FC = () => {
                 <div className="xl:col-span-1 space-y-6">
                     {analysis ? (
                         <div className="space-y-6">
-                            <div className="glass-card p-8 border-white/10 bg-gradient-to-br from-white/5 to-transparent overflow-hidden relative">
+                            <div className="glass-card p-8 border-border bg-gradient-to-br from-secondary/50 to-transparent overflow-hidden relative">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className="w-full flex items-center justify-between mb-8">
                                         <div className="flex items-center gap-2">
                                             <div className={`w-3 h-3 rounded-full ${analysis.netCashFlow >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
-                                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Monthly Summary</span>
+                                            <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Monthly Summary</span>
                                         </div>
-                                        <PieIcon className="w-4 h-4 text-white/20" />
+                                        <PieIcon className="w-4 h-4 text-foreground/20" />
                                     </div>
 
                                     <div className="h-64 w-full">
@@ -233,32 +233,32 @@ const CashFlowHub: React.FC = () => {
                                             </PieChart>
                                         </ResponsiveContainer>
                                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none mt-4">
-                                            <div className="text-[10px] text-white/40 uppercase font-black tracking-tighter">Net Flow</div>
-                                            <div className={`text-2xl font-black ${analysis.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            <div className="text-[10px] text-foreground/40 uppercase font-black tracking-tighter">Net Flow</div>
+                                            <div className={`text-2xl font-black ${analysis.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                                 ${analysis.netCashFlow.toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 w-full gap-4 mt-8 pt-8 border-t border-white/5 text-center">
+                                    <div className="grid grid-cols-3 w-full gap-4 mt-8 pt-8 border-t border-border text-center">
                                         <div className="space-y-1">
-                                            <div className="text-[10px] text-white/30 font-bold uppercase tracking-tight">Needs</div>
-                                            <div className="text-sm font-bold text-white">${analysis.needs.toLocaleString()}</div>
+                                            <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Needs</div>
+                                            <div className="text-sm font-bold text-foreground">${analysis.needs.toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
-                                            <div className="text-[10px] text-white/30 font-bold uppercase tracking-tight">Wants</div>
-                                            <div className="text-sm font-bold text-white">${analysis.wants.toLocaleString()}</div>
+                                            <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Wants</div>
+                                            <div className="text-sm font-bold text-foreground">${analysis.wants.toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
-                                            <div className="text-[10px] text-white/30 font-bold uppercase tracking-tight">Savings</div>
-                                            <div className="text-sm font-bold text-white">${analysis.savings.toLocaleString()}</div>
+                                            <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Savings</div>
+                                            <div className="text-sm font-bold text-foreground">${analysis.savings.toLocaleString()}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="glass-card p-6 border-white/5">
-                                <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-wider flex items-center gap-2">
+                            <div className="glass-card p-6 border-border">
+                                <h4 className="text-sm font-bold text-foreground mb-6 uppercase tracking-wider flex items-center gap-2">
                                     <CheckCircle2 className="w-4 h-4 text-primary-500" />
                                     Budget Compliance
                                 </h4>
@@ -266,12 +266,12 @@ const CashFlowHub: React.FC = () => {
                                     {analysis.budgetCompliance && Object.entries(analysis.budgetCompliance).map(([key, data]: any) => (
                                         <div key={key} className="space-y-2">
                                             <div className="flex justify-between text-xs font-bold">
-                                                <span className="text-white/60 capitalize">{key}</span>
-                                                <span className={`${data.status === 'Over Budget' ? 'text-red-400' : 'text-green-400'}`}>
+                                                <span className="text-foreground/60 capitalize">{key}</span>
+                                                <span className={`${data.status === 'Over Budget' ? 'text-red-500' : 'text-green-500'}`}>
                                                     {data.actualPct?.toFixed(0) || 0}% / {data.limitPct}%
                                                 </span>
                                             </div>
-                                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                            <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
                                                 <div 
                                                     className={`h-full transition-all duration-1000 ${data.status === 'Over Budget' ? 'bg-red-500' : 'bg-green-500'}`} 
                                                     style={{ width: `${Math.min(data.actualPct || 0, 100)}%` }}
@@ -297,12 +297,12 @@ const CashFlowHub: React.FC = () => {
                             </div>
                         </div>
                     ) : (
-                        <div className="glass-card h-full p-12 flex flex-col items-center justify-center text-center space-y-4 border-white/5">
-                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-                                <DollarSign className="w-8 h-8 text-white/10" />
+                        <div className="glass-card h-full p-12 flex flex-col items-center justify-center text-center space-y-4 border-border/40">
+                            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
+                                <DollarSign className="w-8 h-8 text-foreground/10" />
                             </div>
-                            <h3 className="text-lg font-bold text-white/40">Financial Health Summary</h3>
-                            <p className="text-sm text-blue-200/20">Analyze your data to see your 50/30/20 breakdown and health status.</p>
+                            <h3 className="text-lg font-bold text-foreground/40 uppercase tracking-widest">Financial Health Summary</h3>
+                            <p className="text-sm text-foreground/20 italic">Analyze your data to see your 50/30/20 breakdown and health status.</p>
                         </div>
                     )}
                 </div>

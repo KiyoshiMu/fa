@@ -24,11 +24,11 @@
     --glass-border: rgba(255, 255, 255, 0.08);
     --sidebar-bg: 222.2 84% 4.9%;
     --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-foreground: 210 40% 98%;
+    --sidebar-foreground: 210 40% 94%;
   }
 
   .light {
-    --background: 210 40% 98%;
+    --background: 210 40% 99%;
     --foreground: 222.2 47.4% 11.2%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 47.4% 11.2%;
@@ -39,9 +39,9 @@
     --ring: 222.2 84% 4.9%;
     --glass-bg: rgba(255, 255, 255, 0.7);
     --glass-border: rgba(0, 0, 0, 0.05);
-    --sidebar-bg: 210 40% 96.1%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-foreground: 222.2 47.4% 11.2%;
+    --sidebar-bg: 210 40% 96%;
+    --sidebar-border: 214.3 31.8% 88%;
+    --sidebar-foreground: 222.2 47.4% 12%;
   }
 }
 
@@ -163,22 +163,23 @@ button {
 /* Input Styles */
 input, textarea, select {
   width: 100%;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid var(--border);
-  color: white;
+  background: hsl(var(--secondary) / 0.5);
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
   padding: 0.8rem;
   border-radius: var(--radius);
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
 }
 
-input:focus {
+input:focus, textarea:focus, select:focus {
   border-color: hsl(var(--accent));
+  background: hsl(var(--secondary) / 0.8);
 }
 
 label {
   display: block;
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: hsl(var(--foreground) / 0.6);
 }
