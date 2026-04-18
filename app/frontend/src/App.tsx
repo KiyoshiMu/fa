@@ -42,7 +42,7 @@ const App: React.FC = () => {
             {/* Mobile Sidebar Overlay */}
             {isMenuOpen && (
                 <div 
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/40 z-40 lg:hidden"
                     onClick={() => setIsMenuOpen(false)}
                 />
             )}
@@ -50,7 +50,7 @@ const App: React.FC = () => {
             {/* Layout Wrapper */}
             <div className="flex relative z-10 transition-all duration-500">
                 {/* Sidebar */}
-                <aside className={`fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-white/5 z-50 transition-all duration-500 transform lg:translate-x-0 lg:bg-slate-900/50 lg:backdrop-blur-2xl ${isMenuOpen ? 'translate-x-0' : '-translate-x-full shadow-2xl lg:shadow-none'}`}>
+                <aside className={`fixed inset-y-0 left-0 w-72 bg-[hsl(var(--sidebar-bg))] border-r border-[hsl(var(--sidebar-border))] z-50 transition-all duration-500 transform lg:translate-x-0 lg:bg-[hsl(var(--sidebar-bg))]/50 lg:backdrop-blur-2xl ${isMenuOpen ? 'translate-x-0' : '-translate-x-full shadow-2xl lg:shadow-none'}`}>
                     <div className="h-full flex flex-col p-6">
                         <div className="flex items-center justify-between mb-10">
                             <div className="flex items-center gap-3 px-2">
@@ -58,7 +58,7 @@ const App: React.FC = () => {
                                     <Activity className="w-6 h-6 text-white" />
                                 </div>
                                 <div>
-                                    <h1 className="text-xl font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">FA Advisor</h1>
+                                    <h1 className="text-xl font-black bg-gradient-to-br from-[hsl(var(--sidebar-foreground))] to-[hsl(var(--sidebar-foreground))]/60 bg-clip-text text-transparent italic">FA Advisor</h1>
                                     <div className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.2em] leading-none mt-1">v2.0 Premium</div>
                                 </div>
                             </div>
@@ -84,12 +84,12 @@ const App: React.FC = () => {
                                             : 'text-white/40 hover:bg-white/5 border border-transparent'
                                     }`}
                                 >
-                                    <div className={`p-2 rounded-xl transition-all duration-300 ${activeTab === item.id ? 'bg-primary-500 text-white' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                                    <div className={`p-2 rounded-xl transition-all duration-300 ${activeTab === item.id ? 'bg-primary-500 text-white' : 'bg-[hsl(var(--sidebar-foreground))]/5 group-hover:bg-[hsl(var(--sidebar-foreground))]/10'}`}>
                                         <item.icon className="w-5 h-5" />
                                     </div>
                                     <div className="text-left">
-                                        <div className="font-bold text-sm tracking-wide">{item.label}</div>
-                                        <div className="text-[10px] uppercase font-black tracking-widest opacity-40">{item.desc}</div>
+                                        <div className="font-bold text-sm tracking-wide group-hover:text-[hsl(var(--sidebar-foreground))] transition-colors">{item.label}</div>
+                                        <div className="text-[10px] uppercase font-black tracking-widest opacity-40 group-hover:opacity-60 transition-opacity">{item.desc}</div>
                                     </div>
                                     {activeTab === item.id && (
                                         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-l-full shadow-[0_0_10px_rgba(14,165,233,0.5)]" />

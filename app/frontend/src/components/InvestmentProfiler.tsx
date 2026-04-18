@@ -219,9 +219,9 @@ const InvestmentProfiler: React.FC = () => {
                                     Step {currentStep + 1} of {QUESTIONS.length}
                                 </div>
                                 <button
-                                    disabled={currentStep === QUESTIONS.length - 1}
+                                    disabled={currentStep === QUESTIONS.length - 1 || !answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] && answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] !== 0}
                                     onClick={() => setCurrentStep(prev => prev + 1)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white/40 hover:text-white disabled:opacity-0 transition-all"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white/40 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all"
                                 >
                                     Next <ChevronRight className="w-4 h-4" />
                                 </button>
