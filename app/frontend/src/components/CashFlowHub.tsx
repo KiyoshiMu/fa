@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { analyzeCashFlow, analyzeWithAI } from '../lib/api';
 import type { Transaction } from '../lib/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Loader2, Plus, Brain, List, CheckCircle2, AlertCircle, PieChart as PieIcon, DollarSign, ArrowRight, ChevronDown } from 'lucide-react';
+import { Loader2, Plus, Brain, List, CheckCircle2, AlertCircle, PieChart as PieIcon, DollarSign, ArrowRight, ChevronDown, Trash2 } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 
 const CategorySelector: React.FC<{
