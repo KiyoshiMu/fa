@@ -86,7 +86,9 @@ const CashFlowHub: React.FC = () => {
     };
 
     const handleDeleteTransaction = (id: string) => {
-        setTransactions(transactions.filter(t => t.id !== id));
+        if (window.confirm('Are you sure you want to remove this transaction?')) {
+            setTransactions(transactions.filter(t => t.id !== id));
+        }
     };
 
     const handleUpdateTransaction = (id: string, field: keyof Transaction, value: any) => {
@@ -216,7 +218,7 @@ const CashFlowHub: React.FC = () => {
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            value={tx.amount}
+                                                            value={Math.abs(tx.amount)}
                                                             onChange={(e) => handleUpdateTransaction(tx.id, 'amount', e.target.value)}
                                                             className={`bg-transparent font-mono text-right focus:outline-none w-24 ${tx.category === 'Income' ? 'text-green-400' : 'text-red-400'}`}
                                                         />
@@ -320,7 +322,7 @@ const CashFlowHub: React.FC = () => {
                                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none mt-4">
                                             <div className="text-[10px] text-foreground/40 uppercase font-black tracking-tighter">Net Flow</div>
                                             <div className={`text-2xl font-black ${state.cashFlow.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                                ${state.cashFlow.netCashFlow.toLocaleString()}
+                                                ${(state.cashFlow.netCashFlow || 0).toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
@@ -329,13 +331,13 @@ const CashFlowHub: React.FC = () => {
                                         <div className="text-center p-3 rounded-2xl bg-secondary/30 border border-border/20">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight mb-1">Total Income</div>
                                             <div className="text-lg font-black text-green-500">
-                                                ${state.cashFlow.totalInflow.toLocaleString()}
+                                                ${(state.cashFlow.totalInflow || 0).toLocaleString()}
                                             </div>
                                         </div>
                                         <div className="text-center p-3 rounded-2xl bg-secondary/30 border border-border/20">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight mb-1">Total Expenses</div>
                                             <div className="text-lg font-black text-red-500">
-                                                ${state.cashFlow.totalOutflow.toLocaleString()}
+                                                ${(state.cashFlow.totalOutflow || 0).toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
@@ -343,15 +345,15 @@ const CashFlowHub: React.FC = () => {
                                     <div className="grid grid-cols-3 w-full gap-4 mt-6 text-center">
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Needs</div>
-                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.needs.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${(state.cashFlow?.needs || 0).toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Wants</div>
-                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.wants.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${(state.cashFlow?.wants || 0).toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Savings</div>
-                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.savings.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${(state.cashFlow?.savings || 0).toLocaleString()}</div>
                                         </div>
                                     </div>
                                 </div>

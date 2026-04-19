@@ -67,10 +67,10 @@ describe('CashflowService', () => {
     });
 
     describe('analyzeWithAI', () => {
-        it('successfully parses AI JSON response into transactions with IDs', async () => {
+        it('successfully parses AI JSON response into transactions with absolute amounts', async () => {
             const mockAIResponse = JSON.stringify([
-                { date: '2026-04-01', description: 'MOCK SALARY', amount: 3000, category: 'Income' },
-                { date: '2026-04-02', description: 'MOCK RENT', amount: -1200, category: 'Fixed' }
+                { date: '2026-04-01', description: 'MOCK SALARY', amount: -3000, category: 'income' },
+                { date: '04/02/2026', description: 'MOCK RENT', amount: -1200, category: 'Fixed' }
             ]);
 
             (generateCategorizedJSON as any).mockResolvedValue(mockAIResponse);
@@ -79,9 +79,11 @@ describe('CashflowService', () => {
 
             expect(transactions).toHaveLength(2);
             expect(transactions[0].id).toBeDefined();
-            expect(transactions[1].id).toBeDefined();
-            expect(transactions[0].description).toBe('MOCK SALARY');
-            expect(transactions[1].amount).toBe(-1200);
+            expect(transactions[0].amount).toBe(3000); // Should be absolute
+            expect(transactions[0].date).toBe('2026-04-01');
+            
+            expect(transactions[1].amount).toBe(1200); // Should be absolute
+            expect(transactions[1].date).toBe('2026-04-02'); // Should be normalized to ISO
             expect(generateCategorizedJSON).toHaveBeenCalled();
         });
 

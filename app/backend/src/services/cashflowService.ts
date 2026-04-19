@@ -59,12 +59,24 @@ export const analyzeWithAI = async (input: string): Promise<Transaction[]> => {
   try {
     const rawTransactions: Transaction[] = JSON.parse(responseText);
     // Assign unique IDs to prevent frontend state collisions
-    return rawTransactions.map(tx => ({
-        ...tx,
-        id: tx.id || crypto.randomUUID(),
-        // Ensure amount sign reflects category if AI missed it
-        amount: tx.category === 'Income' ? Math.abs(tx.amount) : -Math.abs(tx.amount)
-    }));
+    return rawTransactions.map(tx => {
+        // Normalize date to YYYY-MM-DD if possible
+        let normalizedDate = tx.date;
+        try {
+            const d = new Date(tx.date);
+            if (!isNaN(d.getTime())) {
+                normalizedDate = d.toISOString().split('T')[0];
+            }
+        } catch (e) {}
+
+        return {
+            ...tx,
+            date: normalizedDate,
+            id: tx.id || crypto.randomUUID(),
+            // ALL numbers should be positive. UI handles signing based on category.
+            amount: Math.abs(tx.amount)
+        };
+    });
   } catch (err) {
     console.error("Failed to parse Gemini response:", responseText);
     throw new Error("AI returned invalid JSON formatting.");
@@ -109,15 +121,18 @@ export const analyzeTransactions = (transactions: Transaction[]): CashflowAnalys
 
   monthlyTransactions.forEach(tx => {
     const absAmount = Math.abs(tx.amount);
-    if (tx.category === 'Income') {
+    const category = (tx.category || 'Unknown').trim().toLowerCase();
+
+    if (category === 'income') {
       totalInflow += absAmount;
-    } else if (tx.category === 'Fixed') {
+    } else if (category === 'fixed') {
       fixed += absAmount;
-    } else if (tx.category === 'Variable') {
+    } else if (category === 'variable') {
       variable += absAmount;
-    } else if (tx.category === 'Savings') {
+    } else if (category === 'savings') {
       savings += absAmount;
     } else {
+      // Default behavior for Unknown or undefined categories
       if (tx.amount > 0) totalInflow += absAmount;
       else variable += absAmount;
     }
