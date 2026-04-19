@@ -1,16 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { analyzeCashFlow, analyzeWithAI } from '../lib/api';
 import type { Transaction } from '../lib/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Loader2, Plus, Brain, List, CheckCircle2, AlertCircle, PieChart as PieIcon, DollarSign } from 'lucide-react';
+import { Loader2, Plus, Brain, List, CheckCircle2, AlertCircle, PieChart as PieIcon, DollarSign, ArrowRight, ChevronDown } from 'lucide-react';
+import { useFinancial } from '../FinancialContext';
+
+const CategorySelector: React.FC<{
+    value: Transaction['category'];
+    onChange: (val: Transaction['category']) => void;
+}> = ({ value, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const categories: { id: Transaction['category'], label: string }[] = [
+        { id: 'Income', label: 'Income' },
+        { id: 'Fixed', label: 'Fixed (Needs)' },
+        { id: 'Variable', label: 'Variable (Wants)' },
+        { id: 'Savings', label: 'Savings/Debt' }
+    ];
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const selectedCategory = categories.find(c => c.id === value);
+
+    return (
+        <div className="relative" ref={containerRef}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 border border-border/40 hover:border-primary-500/50 transition-all min-w-[140px] text-foreground/80"
+            >
+                <span className="text-xs font-medium">{selectedCategory?.label}</span>
+                <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-[#0f172a] border border-border/60 rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    {categories.map((cat) => (
+                        <button
+                            key={cat.id}
+                            onClick={() => {
+                                onChange(cat.id);
+                                setIsOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${
+                                value === cat.id 
+                                    ? 'bg-primary-600 text-white' 
+                                    : 'text-foreground/60 hover:bg-white/5 hover:text-foreground'
+                            }`}
+                        >
+                            {cat.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const CashFlowHub: React.FC = () => {
+    const { state, setCashFlow, setStep } = useFinancial();
     const [mode, setMode] = useState<'manual' | 'ai'>('manual');
     const [transactions, setTransactions] = useState<Transaction[]>([
-        { id: '1', date: '2026-04-01', description: 'Salary', amount: 5000, category: 'Income' }
+        { id: '1', date: '2026-04-18', description: 'Salary', amount: 5000, category: 'Income' }
     ]);
     const [aiInput, setAiInput] = useState('');
-    const [analysis, setAnalysis] = useState<{ needs: number; wants: number; savings: number; totalInflow: number; totalOutflow: number; netCashFlow: number; budgetCompliance: any } | null>(null);
     const [loading, setLoading] = useState(false);
 
     const handleAddTransaction = () => {
@@ -39,7 +100,7 @@ const CashFlowHub: React.FC = () => {
                 ? await analyzeCashFlow(transactions)
                 : await analyzeWithAI(aiInput);
             
-            setAnalysis(result as any);
+            setCashFlow(result as any);
             if (mode === 'ai' && (result as any).extractedTransactions) {
                 setTransactions((result as any).extractedTransactions);
             }
@@ -51,19 +112,19 @@ const CashFlowHub: React.FC = () => {
     };
 
     const COLORS = ['#0ea5e9', '#6366f1', '#10b981'];
-    const pieData = analysis ? [
-        { name: 'Needs', value: analysis.needs },
-        { name: 'Wants', value: analysis.wants },
-        { name: 'Savings', value: analysis.savings }
+    const pieData = state.cashFlow ? [
+        { name: 'Needs', value: state.cashFlow.needs },
+        { name: 'Wants', value: state.cashFlow.wants },
+        { name: 'Savings', value: state.cashFlow.savings }
     ].filter(d => d.value > 0) : [];
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground mb-2">Cash Flow Hub</h2>
-                    <p className="text-foreground/60 max-w-2xl">
-                        Monitor your income and expenses to ensure a healthy 50/30/20 balance. Use AI to automatically categorize your spending from bank statements.
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground mb-2">Step 1: Cash Flow Hub</h2>
+                    <p className="text-foreground/60 max-w-2xl text-sm italic">
+                        The foundation of wealth is a positive cash flow. Let's analyze your monthly balance.
                     </p>
                 </div>
 
@@ -131,16 +192,10 @@ const CashFlowHub: React.FC = () => {
                                                     />
                                                 </td>
                                                 <td className="px-6 py-3">
-                                                    <select
+                                                    <CategorySelector 
                                                         value={tx.category}
-                                                        onChange={(e) => handleUpdateTransaction(tx.id, 'category', e.target.value as any)}
-                                                        className="bg-transparent text-foreground/60 focus:outline-none cursor-pointer"
-                                                    >
-                                                        <option className="bg-background" value="Income">Income</option>
-                                                        <option className="bg-background" value="Fixed">Fixed (Needs)</option>
-                                                        <option className="bg-background" value="Variable">Variable (Wants)</option>
-                                                        <option className="bg-background" value="Savings">Savings/Debt</option>
-                                                    </select>
+                                                        onChange={(val) => handleUpdateTransaction(tx.id, 'category', val)}
+                                                    />
                                                 </td>
                                                 <td className="px-6 py-3 text-right">
                                                     <div className="flex items-center justify-end gap-1">
@@ -185,25 +240,36 @@ const CashFlowHub: React.FC = () => {
                         </div>
                     )}
 
-                    <button
-                        onClick={handleAnalyze}
-                        disabled={loading}
-                        className="w-full py-5 bg-gradient-to-r from-primary-600 to-blue-500 hover:from-primary-500 hover:to-blue-400 text-white font-black uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 shadow-2xl shadow-primary-500/30 flex items-center justify-center gap-3 disabled:opacity-50"
-                    >
-                        {loading && <Loader2 className="w-6 h-6 animate-spin" />}
-                        Generate Analysis
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <button
+                            onClick={handleAnalyze}
+                            disabled={loading}
+                            className="flex-1 py-5 bg-gradient-to-r from-primary-600 to-blue-500 hover:from-primary-500 hover:to-blue-400 text-white font-black uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 shadow-2xl shadow-primary-500/30 flex items-center justify-center gap-3 disabled:opacity-50"
+                        >
+                            {loading && <Loader2 className="w-6 h-6 animate-spin" />}
+                            Run Analysis
+                        </button>
+
+                        {state.cashFlow && (
+                            <button
+                                onClick={() => setStep(2)}
+                                className="flex-1 py-5 bg-foreground text-background font-black uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 hover:opacity-90 flex items-center justify-center gap-3"
+                            >
+                                Continue to Goal <ArrowRight className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="xl:col-span-1 space-y-6">
-                    {analysis ? (
+                    {state.cashFlow ? (
                         <div className="space-y-6">
                             <div className="glass-card p-8 border-border bg-gradient-to-br from-secondary/50 to-transparent overflow-hidden relative">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className="w-full flex items-center justify-between mb-8">
                                         <div className="flex items-center gap-2">
-                                            <div className={`w-3 h-3 rounded-full ${analysis.netCashFlow >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
+                                            <div className={`w-3 h-3 rounded-full ${state.cashFlow.netCashFlow >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
                                             <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Monthly Summary</span>
                                         </div>
                                         <PieIcon className="w-4 h-4 text-foreground/20" />
@@ -234,8 +300,8 @@ const CashFlowHub: React.FC = () => {
                                         </ResponsiveContainer>
                                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none mt-4">
                                             <div className="text-[10px] text-foreground/40 uppercase font-black tracking-tighter">Net Flow</div>
-                                            <div className={`text-2xl font-black ${analysis.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                                ${analysis.netCashFlow.toLocaleString()}
+                                            <div className={`text-2xl font-black ${state.cashFlow.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                ${state.cashFlow.netCashFlow.toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
@@ -243,30 +309,30 @@ const CashFlowHub: React.FC = () => {
                                     <div className="grid grid-cols-3 w-full gap-4 mt-8 pt-8 border-t border-border text-center">
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Needs</div>
-                                            <div className="text-sm font-bold text-foreground">${analysis.needs.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.needs.toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Wants</div>
-                                            <div className="text-sm font-bold text-foreground">${analysis.wants.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.wants.toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Savings</div>
-                                            <div className="text-sm font-bold text-foreground">${analysis.savings.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.savings.toLocaleString()}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="glass-card p-6 border-border">
-                                <h4 className="text-sm font-bold text-foreground mb-6 uppercase tracking-wider flex items-center gap-2">
+                            <div className="glass-card p-6 border-border text-sm">
+                                <h4 className="text-xs font-bold text-foreground mb-4 uppercase tracking-widest flex items-center gap-2">
                                     <CheckCircle2 className="w-4 h-4 text-primary-500" />
-                                    Budget Compliance
+                                    Budget Audit
                                 </h4>
                                 <div className="space-y-6">
-                                    {analysis.budgetCompliance && Object.entries(analysis.budgetCompliance).map(([key, data]: any) => (
+                                    {state.cashFlow.budgetCompliance && Object.entries(state.cashFlow.budgetCompliance).map(([key, data]: any) => (
                                         <div key={key} className="space-y-2">
-                                            <div className="flex justify-between text-xs font-bold">
-                                                <span className="text-foreground/60 capitalize">{key}</span>
+                                            <div className="flex justify-between text-[11px] font-bold">
+                                                <span className="text-foreground/40 capitalize">{key}</span>
                                                 <span className={`${data.status === 'Over Budget' ? 'text-red-500' : 'text-green-500'}`}>
                                                     {data.actualPct?.toFixed(0) || 0}% / {data.limitPct}%
                                                 </span>
@@ -282,16 +348,16 @@ const CashFlowHub: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className={`p-5 rounded-2xl border flex items-start gap-4 ${analysis.netCashFlow >= 0 ? 'bg-green-500/10 border-green-500/20 text-green-200' : 'bg-red-500/10 border-red-500/20 text-red-200'}`}>
-                                {analysis.netCashFlow >= 0 ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+                            <div className={`p-6 rounded-3xl border flex items-start gap-4 ${state.cashFlow.netCashFlow >= 0 ? 'bg-green-500/5 border-green-500/10 text-green-200' : 'bg-red-500/5 border-red-500/10 text-red-200'}`}>
+                                {state.cashFlow.netCashFlow >= 0 ? <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-green-500" /> : <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500" />}
                                 <div>
-                                    <div className="text-sm font-bold mb-1">
-                                        {analysis.netCashFlow >= 0 ? 'Positive Cash Flow Detected' : 'Debt Risk Alert'}
+                                    <div className={`text-sm font-bold mb-1 ${state.cashFlow.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {state.cashFlow.netCashFlow >= 0 ? 'Healthy Cash Flow' : 'Deficit Detected'}
                                     </div>
-                                    <div className="text-xs opacity-70 leading-relaxed">
-                                        {analysis.netCashFlow >= 0 
-                                            ? `Great job! You have $${analysis.netCashFlow.toLocaleString()} left over this month correctly. We recommend putting this toward your savings goal.`
-                                            : "Your expenses exceed your income this month. You should audit your 'Wants' category to bring your cash flow back to zero or positive."}
+                                    <div className="text-[11px] opacity-60 leading-relaxed font-medium">
+                                        {state.cashFlow.netCashFlow >= 0 
+                                            ? `Excellent wealth baseline. You have a surplus of $${state.cashFlow.netCashFlow.toLocaleString()} to commit to your saving goals.`
+                                            : "WARNING: Your outflows exceed your income. Per project standards, we recommend auditing your 'Wants' category to reach a positive balance before finalizing goals."}
                                     </div>
                                 </div>
                             </div>

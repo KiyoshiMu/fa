@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { calculateInvestmentProfile } from '../lib/api';
-import type { QuestionnaireAnswers, InvestmentProfile } from '../lib/api';
-import { Loader2, Info, ChevronRight, CheckCircle2, ChevronLeft } from 'lucide-react';
+import type { QuestionnaireAnswers } from '../lib/api';
+import { Loader2, Info, ChevronRight, CheckCircle2, ChevronLeft, ArrowRight } from 'lucide-react';
+import { useFinancial } from '../FinancialContext';
 
 const QUESTIONS = [
-  { id: 'timeHorizon', type: 'select', label: 'Time Horizon', text: 'When do you plan to buy your home? (or reach your goal)', options: [
+  { id: 'timeHorizon', type: 'select', label: 'Time Horizon', text: 'When do you plan to reach this goal?', options: [
       { id: 'a', label: '< 1 year' },
       { id: 'b', label: '1 - 3 years' },
       { id: 'c', label: '4 - 5 years' },
@@ -105,9 +106,11 @@ const QUESTIONS = [
 ];
 
 const InvestmentProfiler: React.FC = () => {
+    const { state, setProfile: setGlobalProfile, setStep } = useFinancial();
     const [answers, setAnswers] = useState<Partial<QuestionnaireAnswers>>({});
     const [currentStep, setCurrentStep] = useState(0);
     const [isWizard, setIsWizard] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsWizard(window.innerWidth < 1024);
@@ -119,15 +122,15 @@ const InvestmentProfiler: React.FC = () => {
     const answeredCount = Object.keys(answers).length;
     const isComplete = answeredCount === QUESTIONS.length;
 
-    const [profile, setProfile] = useState<{ profile: InvestmentProfile; returnRate: number; monthlyYield: number } | null>(null);
-    const [loading, setLoading] = useState(false);
-
     const handleGenerate = async () => {
         if (!isComplete) return;
         setLoading(true);
         try {
             const result = await calculateInvestmentProfile(answers as QuestionnaireAnswers);
-            setProfile(result);
+            setGlobalProfile({
+                type: result.profile,
+                rate: result.returnRate
+            });
             // On mobile, scroll to results
             if (isWizard) {
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
@@ -153,6 +156,14 @@ const InvestmentProfiler: React.FC = () => {
         }
     };
 
+    const getQuestionText = (q: typeof QUESTIONS[0]) => {
+        if (q.id === 'timeHorizon' && state.goal) {
+            const goalLabel = state.goal.type === 'Home' ? 'New Home' : state.goal.type === 'Vacation' ? 'Dream Vacation' : 'Purchase';
+            return `When do you plan to reach your goal for your ${goalLabel}?`;
+        }
+        return q.text;
+    };
+
     const renderQuestion = (q: typeof QUESTIONS[0], idx: number) => (
         <div key={q.id} className="glass-card p-6 border border-border hover:border-border/60 transition-all duration-500 animate-in fade-in slide-in-from-right-4">
             <div className="flex items-start gap-4">
@@ -162,7 +173,7 @@ const InvestmentProfiler: React.FC = () => {
                 <div className="flex-1 space-y-4">
                     <div>
                         <h3 className="text-lg font-semibold text-foreground/90">{q.label}</h3>
-                        <p className="text-sm text-foreground/50 mt-1">{q.text}</p>
+                        <p className="text-sm text-foreground/50 mt-1">{getQuestionText(q)}</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -195,9 +206,9 @@ const InvestmentProfiler: React.FC = () => {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground mb-2">Investment Profiler</h2>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground mb-2">Step 3: Risk Profiler</h2>
                     <p className="text-foreground/60 max-w-2xl text-sm italic">
-                        Determine your risk tolerance and find the optimal investment strategy.
+                        Determine your risk tolerance and find the optimal investment strategy for your {state.goal?.type || 'Goal'}.
                     </p>
                 </div>
             </div>
@@ -219,7 +230,7 @@ const InvestmentProfiler: React.FC = () => {
                                     Step {currentStep + 1} of {QUESTIONS.length}
                                 </div>
                                 <button
-                                    disabled={currentStep === QUESTIONS.length - 1 || !answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] && answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] !== 0}
+                                    disabled={currentStep === QUESTIONS.length - 1 || (!answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] && answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] !== 0)}
                                     onClick={() => setCurrentStep(prev => prev + 1)}
                                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed transition-all font-mono"
                                 >
@@ -234,21 +245,30 @@ const InvestmentProfiler: React.FC = () => {
 
                 <div className="lg:col-span-1">
                     <div className="sticky top-8 space-y-6">
-                        <button
-                            onClick={handleGenerate}
-                            disabled={loading || !isComplete}
-                            className="w-full relative group px-8 py-5 bg-primary-600 hover:bg-primary-500 text-white font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(224,242,254,0.1)] hover:shadow-primary-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 overflow-hidden"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                            {loading ? (
-                                <Loader2 className="w-6 h-6 animate-spin" />
-                            ) : (
-                                <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                            )}
-                            {isComplete ? 'Generate Profile' : 'Incomplete'}
-                        </button>
+                        {!state.profile ? (
+                            <button
+                                onClick={handleGenerate}
+                                disabled={loading || !isComplete}
+                                className="w-full relative group px-8 py-5 bg-primary-600 hover:bg-primary-500 text-white font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(224,242,254,0.1)] hover:shadow-primary-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                {loading ? (
+                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                ) : (
+                                    <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                                )}
+                                {isComplete ? 'Calculate Strategy' : 'Incomplete'}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setStep(4)}
+                                className="w-full relative group px-8 py-5 bg-foreground text-background font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 shadow-2xl hover:scale-[1.02] flex items-center justify-center gap-2 overflow-hidden"
+                            >
+                                Get Final Recommendation <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                            </button>
+                        )}
 
-                        {profile ? (
+                        {state.profile ? (
                             <div className="glass-card p-8 border-primary-500/30 bg-primary-500/5 overflow-hidden relative animate-in zoom-in-95 duration-500">
                                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary-500/10 rounded-full blur-3xl opacity-50" />
                                 
@@ -261,28 +281,22 @@ const InvestmentProfiler: React.FC = () => {
                                     <div>
                                         <div className="text-foreground/50 text-xs mb-1 uppercase font-bold tracking-tighter">Recommended Profile</div>
                                         <div className="text-4xl font-black bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent italic">
-                                            {profile.profile}
+                                            {state.profile.type}
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+                                    <div className="grid grid-cols-1 gap-4 pt-4 border-t border-border">
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/30 font-bold uppercase tracking-tighter">Annual Return (EST)</div>
                                             <div className="text-2xl font-black text-green-500">
-                                                {(profile.returnRate * 100).toFixed(1)}%
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="text-[10px] text-foreground/30 font-bold uppercase tracking-tighter">Monthly Yield</div>
-                                            <div className="text-2xl font-black text-primary-500">
-                                                {(profile.monthlyYield * 100).toFixed(2)}%
+                                                {(state.profile.rate * 100).toFixed(1)}%
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 text-[10px] text-foreground/50 italic leading-relaxed">
                                         <Info className="w-3 h-3 mb-2 opacity-50" />
-                                        illustrative purposes only. Actual results will vary based on market conditions.
+                                        Based on our back-end math models. Final solution in Step 4.
                                     </div>
                                 </div>
                             </div>

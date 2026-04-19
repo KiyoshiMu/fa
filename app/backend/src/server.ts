@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { calculateProfile, ScoringPolicy, QuestionnaireAnswers, getReturnRate, InvestmentProfile } from './services/investmentService.js';
+import { AdvisoryService } from './services/AdvisoryService.js';
 import { calculatePMT } from './utils/financeUtils.js';
 import { analyzeTransactions, analyzeWithAI, Transaction } from './services/cashflowService.js';
 
@@ -133,6 +134,16 @@ app.post('/api/cashflow/analyze-ai', async (req: Request, res: Response) => {
 });
 
 if (process.env.NODE_ENV !== 'production') {
+  // Advisory Analysis Endpoint
+  app.post('/api/advisory/analyze', (req: Request, res: Response) => {
+    try {
+        const result = AdvisoryService.analyze(req.body);
+        res.json(result);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+  });
+
   app.listen(port, () => {
     console.log(`FA Backend listening at http://localhost:${port}`);
   });

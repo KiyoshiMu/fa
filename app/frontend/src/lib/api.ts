@@ -120,3 +120,35 @@ export async function analyzeWithAI(rawText: string) {
   });
   return res.json() as Promise<AnalysisResponse>;
 }
+
+export interface AdvisoryRequest {
+    surplus: number;
+    targetAmount: number;
+    currentSavings: number;
+    months: number;
+    profileType: InvestmentProfile;
+    annualRate: number;
+}
+
+export interface AdvisoryResponse {
+    pmtWithInvest: number;
+    pmtCashOnly: number;
+    savingsGain: number;
+    gap: number;
+    isShort: boolean;
+    recommendedETF: {
+        ticker: string;
+        name: string;
+        desc: string;
+    };
+}
+
+export const analyzeAdvisory = async (data: AdvisoryRequest): Promise<AdvisoryResponse> => {
+    const response = await fetch(`${API_BASE}/advisory/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to analyze advisory path');
+    return response.json();
+};

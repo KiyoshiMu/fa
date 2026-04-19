@@ -1,0 +1,186 @@
+import React, { useState } from 'react';
+import { Home, Plane, Sparkles, ArrowRight, DollarSign, Calendar, ShieldCheck, Info } from 'lucide-react';
+import { useFinancial } from '../FinancialContext';
+import type { GoalType } from '../FinancialContext';
+
+const GoalOnboarding: React.FC = () => {
+    const { setGoal, setStep } = useFinancial();
+    const [goalType, setGoalType] = useState<GoalType>('Home');
+    const [targetAmount, setTargetAmount] = useState<number>(50000);
+    const [currentSavings, setCurrentSavings] = useState<number>(5000);
+    const [months, setMonths] = useState<number>(36);
+    const [hasFHSA, setHasFHSA] = useState<boolean>(true);
+    const [contribution, setContribution] = useState<number>(500);
+
+    const handleContinue = () => {
+        setGoal({
+            type: goalType,
+            targetAmount,
+            currentSavings,
+            months,
+            hasFHSAOrTFSA: hasFHSA,
+            contribution
+        });
+        setStep(3);
+    };
+
+    const goals = [
+        { id: 'Home' as GoalType, label: 'First Home', icon: Home, desc: 'Saving for a down payment', color: 'from-blue-500 to-indigo-600' },
+        { id: 'Vacation' as GoalType, label: 'Dream Vacation', icon: Plane, desc: 'Luxury travel or sabbatical', color: 'from-emerald-500 to-teal-600' },
+        { id: 'Other' as GoalType, label: 'Custom Goal', icon: Sparkles, desc: 'Wedding, Car, or Life Event', color: 'from-purple-500 to-pink-600' },
+    ];
+
+    return (
+        <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <div className="text-center space-y-4">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-500 text-[10px] font-black uppercase tracking-[0.2em]">
+                    Step 2: Goal Identification
+                </div>
+                <h2 className="text-4xl lg:text-5xl font-black tracking-tight text-foreground">What are we building for?</h2>
+                <p className="text-foreground/40 text-lg max-w-2xl mx-auto italic font-medium">
+                    A goal without a plan is just a wish. Let's quantify your vision.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {goals.map((g) => (
+                    <button
+                        key={g.id}
+                        onClick={() => setGoalType(g.id)}
+                        className={`group relative p-8 rounded-[2.5rem] text-left transition-all duration-500 border-2 overflow-hidden ${
+                            goalType === g.id 
+                                ? 'bg-secondary border-primary-500 shadow-2xl shadow-primary-500/20 -translate-y-2' 
+                                : 'bg-secondary/40 border-transparent hover:border-foreground/10 hover:bg-secondary/60'
+                        }`}
+                    >
+                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${g.color} flex items-center justify-center text-white mb-6 shadow-lg transform group-hover:scale-110 transition-transform duration-500`}>
+                            <g.icon className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-xl font-black text-foreground mb-2">{g.label}</h3>
+                        <p className="text-xs text-foreground/40 font-medium leading-relaxed">{g.desc}</p>
+                        
+                        {goalType === g.id && (
+                            <div className="absolute top-6 right-6">
+                                <ShieldCheck className="w-6 h-6 text-primary-500 animate-in zoom-in duration-300" />
+                            </div>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            <div className="glass-card p-10 lg:p-14 space-y-10 border-foreground/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none" />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
+                    <div className="space-y-8">
+                        <div className="space-y-4">
+                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
+                                <DollarSign className="w-4 h-4 text-primary-500" /> Target Amount
+                            </label>
+                            <div className="relative group">
+                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-foreground/20 group-focus-within:text-primary-500 transition-colors">$</span>
+                                <input
+                                    type="number"
+                                    value={targetAmount}
+                                    onChange={(e) => setTargetAmount(Number(e.target.value))}
+                                    className="w-full bg-background/50 border-2 border-border/40 focus:border-primary-500 rounded-3xl p-6 pl-12 text-3xl font-black text-foreground focus:outline-none transition-all shadow-inner"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
+                                <Calendar className="w-4 h-4 text-primary-500" /> Time Horizon (Months)
+                            </label>
+                            <div className="pt-4">
+                                <input
+                                    type="range"
+                                    min="6"
+                                    max="120"
+                                    step="6"
+                                    value={months}
+                                    onChange={(e) => setMonths(Number(e.target.value))}
+                                    className="w-full h-2 bg-secondary rounded-full appearance-none cursor-pointer accent-primary-500"
+                                />
+                                <div className="flex justify-between mt-4 text-sm font-black italic text-foreground/60">
+                                    <span>6 mo</span>
+                                    <span className="text-primary-500 text-lg bg-primary-500/5 px-4 py-1 rounded-full border border-primary-500/10">
+                                        {months} Months ({(months/12).toFixed(1)} yrs)
+                                    </span>
+                                    <span>10 yrs</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-8">
+                        <div className="space-y-4">
+                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
+                                <Sparkles className="w-4 h-4 text-primary-500" /> Current Savings
+                            </label>
+                            <div className="relative group">
+                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-black text-foreground/20 group-focus-within:text-primary-500 transition-colors">$</span>
+                                <input
+                                    type="number"
+                                    value={currentSavings}
+                                    onChange={(e) => setCurrentSavings(Number(e.target.value))}
+                                    className="w-full bg-background/50 border-2 border-border/40 focus:border-primary-500 rounded-2xl p-5 pl-12 text-xl font-bold text-foreground focus:outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 rounded-3xl bg-secondary/50 border border-border/40 space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <h4 className="text-sm font-black text-foreground uppercase tracking-tight">Tax-Advantaged Accounts</h4>
+                                    <p className="text-[10px] text-foreground/40 font-medium">Do you contribute to FHSA (Home) or TFSA?</p>
+                                </div>
+                                <div 
+                                    onClick={() => setHasFHSA(!hasFHSA)}
+                                    className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-500 ${hasFHSA ? 'bg-primary-500' : 'bg-slate-700'}`}
+                                >
+                                    <div className={`w-6 h-6 bg-white rounded-full transition-transform duration-500 ${hasFHSA ? 'translate-x-6' : 'translate-x-0'} shadow-md`} />
+                                </div>
+                            </div>
+
+                            {hasFHSA && (
+                                <div className="animate-in slide-in-from-top-2 fade-in duration-500">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 mb-2 block">Monthly Contribution</label>
+                                    <input
+                                        type="number"
+                                        value={contribution}
+                                        onChange={(e) => setContribution(Number(e.target.value))}
+                                        className="w-full bg-background/50 border border-border/40 focus:border-primary-500 rounded-xl p-3 font-mono text-sm text-foreground focus:outline-none"
+                                    />
+                                </div>
+                            )}
+
+                            {goalType === 'Home' && !hasFHSA && (
+                                <div className="flex items-start gap-4 p-4 rounded-2xl bg-primary-500/10 border border-primary-500/20 text-primary-500 animate-in zoom-in duration-500">
+                                    <Info className="w-5 h-5 flex-shrink-0" />
+                                    <p className="text-[11px] font-bold leading-relaxed">
+                                        PRO TIP: For a first home in Canada, we strongly recommend opening an FHSA. It provides tax-free growth and tax deductions.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pt-8 flex justify-center">
+                    <button
+                        onClick={handleContinue}
+                        className="group relative px-12 py-5 bg-foreground text-background font-black uppercase tracking-[0.3em] text-sm rounded-full overflow-hidden transition-all duration-500 hover:scale-105 active:scale-95 shadow-2xl shadow-foreground/20"
+                    >
+                        <span className="relative z-10 flex items-center gap-3">
+                            Confirm Goal & Profile Risks <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-500" />
+                        </span>
+                        <div className="absolute inset-0 bg-primary-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default GoalOnboarding;
