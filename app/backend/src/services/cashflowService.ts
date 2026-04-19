@@ -26,28 +26,59 @@ export interface CashflowAnalysis {
   };
   recommendation: string;
   extractedTransactions?: Transaction[];
+  startDate?: string;
+  endDate?: string;
 }
+
+import crypto from 'crypto';
 
 /**
  * Categorize raw transaction strings using Gemini AI
  */
 export const analyzeWithAI = async (input: string): Promise<Transaction[]> => {
   const prompt = `
-    Analyze the following bank statement or transaction list. 
-    Categorize each transaction into one of: 'Fixed' (Needs: Rent, Loan, Insurance, Utilities), 
-    'Variable' (Wants: Entertainment, Dining, Coffee), 'Savings' (Debt repayment, Investments, Savings), 
-    'Income' (Salary, Dividends), or 'Unknown'.
+    Analyze the following bank statement. Context year is 2026.
     
-    Ensure amounts are numbers (negative for outflow, positive for inflow).
+    CRITICAL COLUMN LOGIC:
+    - Many statements use separate columns for "Withdrawals" and "Deposits".
+    - If a number is in the "Deposits", "Credits", or "Income" column (usually the rightmost column), category MUST be 'Income' and amount MUST be positive.
+    - If a number is in the "Withdrawals", "Purchases", or "Debits" column (usually the leftmost column), the amount MUST be negative.
+    
+    Extract every transaction line item. Ignore summaries or noise.
+    
+    Categorize into: 'Fixed' (Needs: Rent, Loan, Utilities), 
+    'Variable' (Wants: Dining, Shopping, Coffee), 'Savings' (Debt, Investments), 
+    'Income' (Salary, Deposits), or 'Unknown'.
     
     Input data:
     ${input}
+    
+    CRITICAL: Always return dates in YYYY-MM-DD format.
   `;
 
   const responseText = await generateCategorizedJSON(prompt);
   
   try {
-    return JSON.parse(responseText);
+    const rawTransactions: Transaction[] = JSON.parse(responseText);
+    // Assign unique IDs to prevent frontend state collisions
+    return rawTransactions.map(tx => {
+        // Normalize date to YYYY-MM-DD if possible
+        let normalizedDate = tx.date;
+        try {
+            const d = new Date(tx.date);
+            if (!isNaN(d.getTime())) {
+                normalizedDate = d.toISOString().split('T')[0];
+            }
+        } catch (e) {}
+
+        return {
+            ...tx,
+            date: normalizedDate,
+            id: tx.id || crypto.randomUUID(),
+            // ALL numbers should be positive. UI handles signing based on category.
+            amount: Math.abs(tx.amount)
+        };
+    });
   } catch (err) {
     console.error("Failed to parse Gemini response:", responseText);
     throw new Error("AI returned invalid JSON formatting.");
@@ -56,22 +87,51 @@ export const analyzeWithAI = async (input: string): Promise<Transaction[]> => {
 
 /**
  * Perform budget analysis on categorized transactions
+ * CAPS analysis to a 30-day window from the latest transaction
  */
 export const analyzeTransactions = (transactions: Transaction[]): CashflowAnalysis => {
+  if (transactions.length === 0) {
+    return {
+      totalInflow: 0, totalOutflow: 0, netCashFlow: 0, 
+      needs: 0, wants: 0, savings: 0, 
+      budgetCompliance: {
+        needs: { actualPct: 0, limitPct: 50, status: 'On Track' },
+        wants: { actualPct: 0, limitPct: 30, status: 'On Track' },
+        savings: { actualPct: 0, limitPct: 20, status: 'Under Target' }
+      },
+      recommendation: "Add transactions to see your analysis.",
+      extractedTransactions: []
+    };
+  }
+
+  // 1. Identify "Latest Date" to define the 30-day window
+  const sortedByDate = [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const latestDate = new Date(sortedByDate[0].date);
+  const cutoffDate = new Date(latestDate);
+  cutoffDate.setDate(cutoffDate.getDate() - 30);
+
+  // 2. Filter transactions to only include the last month
+  const monthlyTransactions = transactions.filter(tx => {
+    const txDate = new Date(tx.date);
+    return txDate >= cutoffDate && txDate <= latestDate;
+  });
+
   let totalInflow = 0;
   let fixed = 0;
   let variable = 0;
   let savings = 0;
 
-  transactions.forEach(tx => {
+  monthlyTransactions.forEach(tx => {
     const absAmount = Math.abs(tx.amount);
-    if (tx.category === 'Income') {
+    const category = (tx.category || 'Unknown').trim().toLowerCase();
+
+    if (category === 'income') {
       totalInflow += absAmount;
-    } else if (tx.category === 'Fixed') {
+    } else if (category === 'fixed') {
       fixed += absAmount;
-    } else if (tx.category === 'Variable') {
+    } else if (category === 'variable') {
       variable += absAmount;
-    } else if (tx.category === 'Savings') {
+    } else if (category === 'savings') {
       savings += absAmount;
     } else {
       // Default behavior for Unknown or undefined categories
@@ -109,6 +169,8 @@ export const analyzeTransactions = (transactions: Transaction[]): CashflowAnalys
       savings: { actualPct: Math.round(savingsPct * 10) / 10, limitPct: 20, status: savingsPct >= 20 ? 'Target Met' : 'Under Target' }
     },
     recommendation,
-    extractedTransactions: transactions
+    extractedTransactions: sortedByDate, // Return sorted list to UI
+    startDate: cutoffDate.toISOString().split('T')[0],
+    endDate: latestDate.toISOString().split('T')[0]
   };
 };

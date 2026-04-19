@@ -13,3 +13,8 @@ Verification and quality assurance for the FA application.
 - [ ] Risk scoring matches the thresholds in `image3`.
 - [ ] Cash flow categorization handles unknown transactions gracefully.
 - [ ] All visualizations handle 0 or negative values without crashing.
+
+## Pre-Push Verification (MANDATORY)
+- [ ] Run `npm run build` in `app/frontend` to verify TypeScript and Vite compilation.
+- [ ] Run `npm test` in `app/backend` to verify all financial logic.
+- [ ] **NEVER** push code that fails the build step.

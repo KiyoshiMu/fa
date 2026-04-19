@@ -62,6 +62,8 @@ export interface AnalysisResponse {
   budgetCompliance: any;
   recommendation: string;
   extractedTransactions?: Transaction[];
+  startDate?: string;
+  endDate?: string;
 }
 
 // API Methods

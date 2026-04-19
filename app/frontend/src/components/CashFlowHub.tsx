@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { analyzeCashFlow, analyzeWithAI } from '../lib/api';
 import type { Transaction } from '../lib/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Loader2, Plus, Brain, List, CheckCircle2, AlertCircle, PieChart as PieIcon, DollarSign, ArrowRight, ChevronDown } from 'lucide-react';
+import { Loader2, Plus, Brain, List, CheckCircle2, AlertCircle, PieChart as PieIcon, DollarSign, ArrowRight, ChevronDown, Trash2 } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 
 const CategorySelector: React.FC<{
@@ -42,7 +42,7 @@ const CategorySelector: React.FC<{
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-[#0f172a] border border-border/60 rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-full left-0 mt-1 w-full bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                     {categories.map((cat) => (
                         <button
                             key={cat.id}
@@ -53,7 +53,7 @@ const CategorySelector: React.FC<{
                             className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${
                                 value === cat.id 
                                     ? 'bg-primary-600 text-white' 
-                                    : 'text-foreground/60 hover:bg-white/5 hover:text-foreground'
+                                    : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
                             }`}
                         >
                             {cat.label}
@@ -85,6 +85,12 @@ const CashFlowHub: React.FC = () => {
         setTransactions([...transactions, newTx]);
     };
 
+    const handleDeleteTransaction = (id: string) => {
+        if (window.confirm('Are you sure you want to remove this transaction?')) {
+            setTransactions(transactions.filter(t => t.id !== id));
+        }
+    };
+
     const handleUpdateTransaction = (id: string, field: keyof Transaction, value: any) => {
         let finalValue = value;
         if (field === 'amount') {
@@ -111,11 +117,17 @@ const CashFlowHub: React.FC = () => {
         }
     };
 
+    useEffect(() => {
+        if (state.cashFlow && mode === 'manual') {
+            analyzeCashFlow(transactions).then(res => setCashFlow(res as any));
+        }
+    }, [transactions]);
+
     const COLORS = ['#0ea5e9', '#6366f1', '#10b981'];
     const pieData = state.cashFlow ? [
-        { name: 'Needs', value: state.cashFlow.needs },
-        { name: 'Wants', value: state.cashFlow.wants },
-        { name: 'Savings', value: state.cashFlow.savings }
+        { name: 'Needs', value: state.cashFlow?.needs || 0 },
+        { name: 'Wants', value: state.cashFlow?.wants || 0 },
+        { name: 'Savings', value: state.cashFlow?.savings || 0 }
     ].filter(d => d.value > 0) : [];
 
     return (
@@ -169,6 +181,7 @@ const CashFlowHub: React.FC = () => {
                                             <th className="px-6 py-4 font-bold">Description</th>
                                             <th className="px-6 py-4 font-bold">Category</th>
                                             <th className="px-6 py-4 font-bold text-right">Amount</th>
+                                            <th className="px-6 py-4 font-bold text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border/20">
@@ -205,11 +218,19 @@ const CashFlowHub: React.FC = () => {
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            value={tx.amount}
+                                                            value={Math.abs(tx.amount)}
                                                             onChange={(e) => handleUpdateTransaction(tx.id, 'amount', e.target.value)}
                                                             className={`bg-transparent font-mono text-right focus:outline-none w-24 ${tx.category === 'Income' ? 'text-green-400' : 'text-red-400'}`}
                                                         />
                                                     </div>
+                                                </td>
+                                                <td className="px-6 py-3 text-center">
+                                                    <button
+                                                        onClick={() => handleDeleteTransaction(tx.id!)}
+                                                        className="p-2 text-foreground/20 hover:text-red-500 transition-colors group-hover:opacity-100"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -268,9 +289,21 @@ const CashFlowHub: React.FC = () => {
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className="w-full flex items-center justify-between mb-8">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-3 h-3 rounded-full ${state.cashFlow.netCashFlow >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
-                                            <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Monthly Summary</span>
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-3 h-3 rounded-full ${state.cashFlow.netCashFlow >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
+                                                <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Monthly Summary</span>
+                                            </div>
+                                            {state.cashFlow.startDate && state.cashFlow.endDate && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[9px] font-medium text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-full border border-primary-500/10 uppercase tracking-tighter">
+                                                        30-Day Snapshot
+                                                    </span>
+                                                    <span className="text-[9px] text-foreground/30 font-mono">
+                                                        {state.cashFlow.startDate} — {state.cashFlow.endDate}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                         <PieIcon className="w-4 h-4 text-foreground/20" />
                                     </div>
@@ -301,23 +334,38 @@ const CashFlowHub: React.FC = () => {
                                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none mt-4">
                                             <div className="text-[10px] text-foreground/40 uppercase font-black tracking-tighter">Net Flow</div>
                                             <div className={`text-2xl font-black ${state.cashFlow.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                                ${state.cashFlow.netCashFlow.toLocaleString()}
+                                                ${(state.cashFlow.netCashFlow || 0).toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 w-full gap-4 mt-8 pt-8 border-t border-border text-center">
+                                    <div className="grid grid-cols-2 w-full gap-4 mt-8 pt-8 border-t border-border">
+                                        <div className="text-center p-3 rounded-2xl bg-secondary/30 border border-border/20">
+                                            <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight mb-1">Total Income</div>
+                                            <div className="text-lg font-black text-green-500">
+                                                ${(state.cashFlow.totalInflow || 0).toLocaleString()}
+                                            </div>
+                                        </div>
+                                        <div className="text-center p-3 rounded-2xl bg-secondary/30 border border-border/20">
+                                            <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight mb-1">Total Expenses</div>
+                                            <div className="text-lg font-black text-red-500">
+                                                ${(state.cashFlow.totalOutflow || 0).toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 w-full gap-4 mt-6 text-center">
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Needs</div>
-                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.needs.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${(state.cashFlow?.needs || 0).toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Wants</div>
-                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.wants.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${(state.cashFlow?.wants || 0).toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Savings</div>
-                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.savings.toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${(state.cashFlow?.savings || 0).toLocaleString()}</div>
                                         </div>
                                     </div>
                                 </div>
