@@ -11,8 +11,6 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-export default app;
-
 /**
  * Health Check
  */
@@ -145,8 +143,19 @@ app.post('/api/advisory/analyze', (req: Request, res: Response) => {
     }
 });
 
+// Global Error Handler
+app.use((err: any, req: Request, res: Response, next: any) => {
+    console.error('Unhandled Server Error:', err);
+    res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: err.message || 'An unexpected error occurred'
+    });
+});
+
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => {
     console.log(`FA Backend listening at http://localhost:${port}`);
   });
 }
+
+export default app;

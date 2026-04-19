@@ -3,15 +3,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const apiKey = process.env.GEMINI_API_KEY;
-
-if (!apiKey) {
-  throw new Error('GEMINI_API_KEY is missing in .env file');
-}
-
-// In the new SDK, initialization is different
-const genai = new GoogleGenAI({ apiKey });
-
 // Define Transaction Schema for Structured Outputs
 export const transactionSchema = {
   description: "A list of categorized financial transactions",
@@ -32,11 +23,26 @@ export const transactionSchema = {
   }
 };
 
+let genAIInstance: GoogleGenAI | null = null;
+
+const getGenAI = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('CONFIG_ERROR: GEMINI_API_KEY is missing. AI analysis unavailable.');
+  }
+  if (!genAIInstance) {
+    genAIInstance = new GoogleGenAI({ apiKey });
+  }
+  return genAIInstance;
+};
+
 /**
  * Helper to call generate content with JSON response
  */
 export const generateCategorizedJSON = async (prompt: string) => {
-  // In the latest SDK (2026), we use gemini-flash-lite-latest
+  const genai = getGenAI();
+  
+  // In the latest SDK, we use gemini-flash-lite-latest
   const response = await genai.models.generateContent({
     model: 'gemini-flash-lite-latest',
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
