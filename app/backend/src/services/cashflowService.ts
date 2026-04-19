@@ -33,13 +33,14 @@ export interface CashflowAnalysis {
  */
 export const analyzeWithAI = async (input: string): Promise<Transaction[]> => {
   const prompt = `
-    Analyze the following bank statement or transaction list. 
-    Categorize each transaction into one of: 'Fixed' (Needs: Rent, Loan, Insurance, Utilities), 
-    'Variable' (Wants: Entertainment, Dining, Coffee), 'Savings' (Debt repayment, Investments, Savings), 
-    'Income' (Salary, Dividends), or 'Unknown'.
+    Analyze the following bank statement. Context year is 2026.
+    Extract every transaction line item. Ignore summaries, total balances, or disclaimers.
     
-    Ensure amounts are numbers (negative for outflow, positive for inflow).
+    Categorize into: 'Fixed' (Needs: Rent, Loan, Utilities), 
+    'Variable' (Wants: Dining, Shopping, Coffee), 'Savings' (Debt, Investments), 
+    'Income' (Salary, Credits), or 'Unknown'.
     
+    Ensure amounts are numbers (positive for inflow/income, negative for outflow/purchases).
     Input data:
     ${input}
   `;
