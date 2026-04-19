@@ -42,7 +42,7 @@ const CategorySelector: React.FC<{
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-[#0f172a] border border-border/60 rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-full left-0 mt-1 w-full bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                     {categories.map((cat) => (
                         <button
                             key={cat.id}
@@ -53,7 +53,7 @@ const CategorySelector: React.FC<{
                             className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${
                                 value === cat.id 
                                     ? 'bg-primary-600 text-white' 
-                                    : 'text-foreground/60 hover:bg-white/5 hover:text-foreground'
+                                    : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
                             }`}
                         >
                             {cat.label}
@@ -113,9 +113,9 @@ const CashFlowHub: React.FC = () => {
 
     const COLORS = ['#0ea5e9', '#6366f1', '#10b981'];
     const pieData = state.cashFlow ? [
-        { name: 'Needs', value: state.cashFlow?.needs || 0 },
-        { name: 'Wants', value: state.cashFlow?.wants || 0 },
-        { name: 'Savings', value: state.cashFlow?.savings || 0 }
+        { name: 'Needs', value: state.cashFlow.needs },
+        { name: 'Wants', value: state.cashFlow.wants },
+        { name: 'Savings', value: state.cashFlow.savings }
     ].filter(d => d.value > 0) : [];
 
     return (
@@ -300,8 +300,8 @@ const CashFlowHub: React.FC = () => {
                                         </ResponsiveContainer>
                                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none mt-4">
                                             <div className="text-[10px] text-foreground/40 uppercase font-black tracking-tighter">Net Flow</div>
-                                            <div className={`text-2xl font-black ${(state.cashFlow?.netCashFlow || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                                ${(state.cashFlow?.netCashFlow || 0).toLocaleString()}
+                                            <div className={`text-2xl font-black ${state.cashFlow.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                ${state.cashFlow.netCashFlow.toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
@@ -309,15 +309,15 @@ const CashFlowHub: React.FC = () => {
                                     <div className="grid grid-cols-3 w-full gap-4 mt-8 pt-8 border-t border-border text-center">
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Needs</div>
-                                            <div className="text-sm font-bold text-foreground">${(state.cashFlow?.needs || 0).toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.needs.toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Wants</div>
-                                            <div className="text-sm font-bold text-foreground">${(state.cashFlow?.wants || 0).toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.wants.toLocaleString()}</div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Savings</div>
-                                            <div className="text-sm font-bold text-foreground">${(state.cashFlow?.savings || 0).toLocaleString()}</div>
+                                            <div className="text-sm font-bold text-foreground">${state.cashFlow.savings.toLocaleString()}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -348,15 +348,15 @@ const CashFlowHub: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className={`p-6 rounded-3xl border flex items-start gap-4 ${(state.cashFlow?.netCashFlow || 0) >= 0 ? 'bg-green-500/5 border-green-500/10 text-green-200' : 'bg-red-500/5 border-red-500/10 text-red-200'}`}>
-                                {(state.cashFlow?.netCashFlow || 0) >= 0 ? <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-green-500" /> : <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500" />}
+                            <div className={`p-6 rounded-3xl border flex items-start gap-4 ${state.cashFlow.netCashFlow >= 0 ? 'bg-green-500/5 border-green-500/10 text-green-200' : 'bg-red-500/5 border-red-500/10 text-red-200'}`}>
+                                {state.cashFlow.netCashFlow >= 0 ? <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-green-500" /> : <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500" />}
                                 <div>
-                                    <div className={`text-sm font-bold mb-1 ${(state.cashFlow?.netCashFlow || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                        {(state.cashFlow?.netCashFlow || 0) >= 0 ? 'Healthy Cash Flow' : 'Deficit Detected'}
+                                    <div className={`text-sm font-bold mb-1 ${state.cashFlow.netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {state.cashFlow.netCashFlow >= 0 ? 'Healthy Cash Flow' : 'Deficit Detected'}
                                     </div>
                                     <div className="text-[11px] opacity-60 leading-relaxed font-medium">
-                                        {(state.cashFlow?.netCashFlow || 0) >= 0 
-                                            ? `Excellent wealth baseline. You have a surplus of $${(state.cashFlow?.netCashFlow || 0).toLocaleString()} to commit to your saving goals.`
+                                        {state.cashFlow.netCashFlow >= 0 
+                                            ? `Excellent wealth baseline. You have a surplus of $${state.cashFlow.netCashFlow.toLocaleString()} to commit to your saving goals.`
                                             : "WARNING: Your outflows exceed your income. Per project standards, we recommend auditing your 'Wants' category to reach a positive balance before finalizing goals."}
                                     </div>
                                 </div>
