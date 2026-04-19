@@ -26,6 +26,8 @@ export interface CashflowAnalysis {
   };
   recommendation: string;
   extractedTransactions?: Transaction[];
+  startDate?: string;
+  endDate?: string;
 }
 
 import crypto from 'crypto';
@@ -167,6 +169,8 @@ export const analyzeTransactions = (transactions: Transaction[]): CashflowAnalys
       savings: { actualPct: Math.round(savingsPct * 10) / 10, limitPct: 20, status: savingsPct >= 20 ? 'Target Met' : 'Under Target' }
     },
     recommendation,
-    extractedTransactions: sortedByDate // Return sorted list to UI
+    extractedTransactions: sortedByDate, // Return sorted list to UI
+    startDate: cutoffDate.toISOString().split('T')[0],
+    endDate: latestDate.toISOString().split('T')[0]
   };
 };

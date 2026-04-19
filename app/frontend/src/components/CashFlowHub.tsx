@@ -289,9 +289,21 @@ const CashFlowHub: React.FC = () => {
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className="w-full flex items-center justify-between mb-8">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-3 h-3 rounded-full ${state.cashFlow.netCashFlow >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
-                                            <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Monthly Summary</span>
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-3 h-3 rounded-full ${state.cashFlow.netCashFlow >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
+                                                <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Monthly Summary</span>
+                                            </div>
+                                            {state.cashFlow.startDate && state.cashFlow.endDate && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[9px] font-medium text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-full border border-primary-500/10 uppercase tracking-tighter">
+                                                        30-Day Snapshot
+                                                    </span>
+                                                    <span className="text-[9px] text-foreground/30 font-mono">
+                                                        {state.cashFlow.startDate} — {state.cashFlow.endDate}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                         <PieIcon className="w-4 h-4 text-foreground/20" />
                                     </div>
