@@ -325,7 +325,22 @@ const CashFlowHub: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 w-full gap-4 mt-8 pt-8 border-t border-border text-center">
+                                    <div className="grid grid-cols-2 w-full gap-4 mt-8 pt-8 border-t border-border">
+                                        <div className="text-center p-3 rounded-2xl bg-secondary/30 border border-border/20">
+                                            <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight mb-1">Total Income</div>
+                                            <div className="text-lg font-black text-green-500">
+                                                ${state.cashFlow.totalInflow.toLocaleString()}
+                                            </div>
+                                        </div>
+                                        <div className="text-center p-3 rounded-2xl bg-secondary/30 border border-border/20">
+                                            <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight mb-1">Total Expenses</div>
+                                            <div className="text-lg font-black text-red-500">
+                                                ${state.cashFlow.totalOutflow.toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 w-full gap-4 mt-6 text-center">
                                         <div className="space-y-1">
                                             <div className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight">Needs</div>
                                             <div className="text-sm font-bold text-foreground">${state.cashFlow.needs.toLocaleString()}</div>
