@@ -133,17 +133,19 @@ app.post('/api/cashflow/analyze-ai', async (req: Request, res: Response) => {
   }
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  // Advisory Analysis Endpoint
-  app.post('/api/advisory/analyze', (req: Request, res: Response) => {
+/**
+ * Endpoint: Advisory Analysis
+ */
+app.post('/api/advisory/analyze', (req: Request, res: Response) => {
     try {
         const result = AdvisoryService.analyze(req.body);
         res.json(result);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
-  });
+});
 
+if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => {
     console.log(`FA Backend listening at http://localhost:${port}`);
   });
