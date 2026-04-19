@@ -7,6 +7,9 @@
     "app/frontend",
     "app/backend"
   ],
+  "scripts": {
+    "build": "cd app/frontend && npm install && npm run build"
+  },
   "dependencies": {
     "@google/genai": "^1.50.1",
     "cors": "^2.8.6",

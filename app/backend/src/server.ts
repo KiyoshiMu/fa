@@ -116,13 +116,13 @@ app.post('/api/cashflow/analyze', (req: Request, res: Response) => {
  */
 app.post('/api/cashflow/analyze-ai', async (req: Request, res: Response) => {
   try {
-    const { input } = req.body as { input: string };
+    const { rawText } = req.body as { rawText: string };
     
-    if (!input) {
-      return res.status(400).json({ error: 'Missing raw transaction text (input)' });
+    if (!rawText) {
+      return res.status(400).json({ error: 'Missing raw transaction text (rawText)' });
     }
 
-    const transactions = await analyzeWithAI(input);
+    const transactions = await analyzeWithAI(rawText);
     const analysis = analyzeTransactions(transactions);
     
     res.json(analysis);

@@ -76,7 +76,7 @@ export async function checkHealth(): Promise<boolean> {
 }
 
 export async function calculateInvestmentProfile(answers: QuestionnaireAnswers) {
-  const res = await fetch(`${API_BASE}/api/invest/calc-profile`, {
+  const res = await fetch(`${API_BASE}/invest/calc-profile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ answers }),
@@ -90,7 +90,7 @@ export async function calculateInvestmentProfile(answers: QuestionnaireAnswers) 
 }
 
 export async function generateSavingsPlan(goalAmount: number, currentSavings: number, months: number, profile: InvestmentProfile) {
-  const res = await fetch(`${API_BASE}/api/invest/generate-plan`, {
+  const res = await fetch(`${API_BASE}/invest/generate-plan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ goalAmount, currentSavings, months, profile }),
@@ -104,7 +104,7 @@ export async function generateSavingsPlan(goalAmount: number, currentSavings: nu
 }
 
 export async function analyzeCashFlow(transactions: Transaction[]) {
-  const res = await fetch(`${API_BASE}/api/cashflow/analyze`, {
+  const res = await fetch(`${API_BASE}/cashflow/analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ transactions }),
@@ -113,7 +113,7 @@ export async function analyzeCashFlow(transactions: Transaction[]) {
 }
 
 export async function analyzeWithAI(rawText: string) {
-  const res = await fetch(`${API_BASE}/api/cashflow/analyze-ai`, {
+  const res = await fetch(`${API_BASE}/cashflow/analyze-ai`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ rawText }),
