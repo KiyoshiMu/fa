@@ -51,7 +51,7 @@ describe('CashflowService', () => {
     });
 
     describe('analyzeWithAI', () => {
-        it('successfully parses AI JSON response into transactions', async () => {
+        it('successfully parses AI JSON response into transactions with IDs', async () => {
             const mockAIResponse = JSON.stringify([
                 { date: '2026-04-01', description: 'MOCK SALARY', amount: 3000, category: 'Income' },
                 { date: '2026-04-02', description: 'MOCK RENT', amount: -1200, category: 'Fixed' }
@@ -62,6 +62,8 @@ describe('CashflowService', () => {
             const transactions = await analyzeWithAI("some raw text");
 
             expect(transactions).toHaveLength(2);
+            expect(transactions[0].id).toBeDefined();
+            expect(transactions[1].id).toBeDefined();
             expect(transactions[0].description).toBe('MOCK SALARY');
             expect(transactions[1].amount).toBe(-1200);
             expect(generateCategorizedJSON).toHaveBeenCalled();

@@ -28,19 +28,26 @@ export interface CashflowAnalysis {
   extractedTransactions?: Transaction[];
 }
 
+import crypto from 'crypto';
+
 /**
  * Categorize raw transaction strings using Gemini AI
  */
 export const analyzeWithAI = async (input: string): Promise<Transaction[]> => {
   const prompt = `
     Analyze the following bank statement. Context year is 2026.
-    Extract every transaction line item. Ignore summaries, total balances, or disclaimers.
+    
+    CRITICAL COLUMN LOGIC:
+    - Many statements use separate columns for "Withdrawals" and "Deposits".
+    - If a number is in the "Deposits", "Credits", or "Income" column (usually the rightmost column), category MUST be 'Income' and amount MUST be positive.
+    - If a number is in the "Withdrawals", "Purchases", or "Debits" column (usually the leftmost column), the amount MUST be negative.
+    
+    Extract every transaction line item. Ignore summaries or noise.
     
     Categorize into: 'Fixed' (Needs: Rent, Loan, Utilities), 
     'Variable' (Wants: Dining, Shopping, Coffee), 'Savings' (Debt, Investments), 
-    'Income' (Salary, Credits), or 'Unknown'.
+    'Income' (Salary, Deposits), or 'Unknown'.
     
-    Ensure amounts are numbers (positive for inflow/income, negative for outflow/purchases).
     Input data:
     ${input}
   `;
@@ -48,7 +55,14 @@ export const analyzeWithAI = async (input: string): Promise<Transaction[]> => {
   const responseText = await generateCategorizedJSON(prompt);
   
   try {
-    return JSON.parse(responseText);
+    const rawTransactions: Transaction[] = JSON.parse(responseText);
+    // Assign unique IDs to prevent frontend state collisions
+    return rawTransactions.map(tx => ({
+        ...tx,
+        id: tx.id || crypto.randomUUID(),
+        // Ensure amount sign reflects category if AI missed it
+        amount: tx.category === 'Income' ? Math.abs(tx.amount) : -Math.abs(tx.amount)
+    }));
   } catch (err) {
     console.error("Failed to parse Gemini response:", responseText);
     throw new Error("AI returned invalid JSON formatting.");
