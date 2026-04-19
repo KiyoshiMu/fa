@@ -1,0 +1,2 @@
+import app from '../app/backend/src/server.js';
+export default app;

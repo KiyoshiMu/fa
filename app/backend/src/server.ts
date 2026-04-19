@@ -1,17 +1,20 @@
 import express, { Request, Response } from 'express';
+import cors from 'cors';
 import { calculateProfile, ScoringPolicy, QuestionnaireAnswers, getReturnRate, InvestmentProfile } from './services/investmentService.js';
+import { AdvisoryService } from './services/AdvisoryService.js';
 import { calculatePMT } from './utils/financeUtils.js';
 import { analyzeTransactions, analyzeWithAI, Transaction } from './services/cashflowService.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 
 /**
  * Health Check
  */
-app.get('/health', (req: Request, res: Response) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
@@ -57,10 +60,18 @@ app.post('/api/invest/generate-plan', (req: Request, res: Response) => {
 
     const rate = getReturnRate(profile);
     const periodicRate = rate / 12;
-    const fvRemaining = goalAmount - currentSavings;
-
-    const pmtWithInvestment = calculatePMT(fvRemaining, periodicRate, months);
-    const pmtWithoutInvestment = calculatePMT(fvRemaining, 0, months);
+    // Proper financial formula for PMT when there's an initial balance (PV):
+    // FV = PV * (1+r)^n + PMT * [((1+r)^n - 1) / r]
+    // Re-arranging for PMT:
+    // PMT = (FV - PV * (1+r)^n) * r / ((1+r)^n - 1)
+    
+    const fvOfCurrentSavings = currentSavings * Math.pow(1 + periodicRate, months);
+    const amountToSave = goalAmount - fvOfCurrentSavings;
+    
+    // We already have calculatePMT which is (FV * r) / ((1+r)^n - 1)
+    // So we just pass the 'amountToSave' as the FV into it.
+    const pmtWithInvestment = calculatePMT(amountToSave, periodicRate, months);
+    const pmtWithoutInvestment = calculatePMT(goalAmount - currentSavings, 0, months);
 
     res.json({
       profile,
@@ -68,7 +79,7 @@ app.post('/api/invest/generate-plan', (req: Request, res: Response) => {
       months,
       targetAmount: goalAmount,
       currentSavings,
-      remainingToSave: fvRemaining,
+      remainingToSave: goalAmount - currentSavings,
       pmt: {
         withInvestment: Math.round(pmtWithInvestment * 100) / 100,
         withoutInvestment: Math.round(pmtWithoutInvestment * 100) / 100,
@@ -107,7 +118,7 @@ app.post('/api/cashflow/analyze-ai', async (req: Request, res: Response) => {
     const { rawText } = req.body as { rawText: string };
     
     if (!rawText) {
-      return res.status(400).json({ error: 'Missing raw transaction text' });
+      return res.status(400).json({ error: 'Missing raw transaction text (rawText)' });
     }
 
     const transactions = await analyzeWithAI(rawText);
@@ -120,6 +131,31 @@ app.post('/api/cashflow/analyze-ai', async (req: Request, res: Response) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`FA Backend listening at http://localhost:${port}`);
+/**
+ * Endpoint: Advisory Analysis
+ */
+app.post('/api/advisory/analyze', (req: Request, res: Response) => {
+    try {
+        const result = AdvisoryService.analyze(req.body);
+        res.json(result);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
 });
+
+// Global Error Handler
+app.use((err: any, req: Request, res: Response, next: any) => {
+    console.error('Unhandled Server Error:', err);
+    res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: err.message || 'An unexpected error occurred'
+    });
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`FA Backend listening at http://localhost:${port}`);
+  });
+}
+
+export default app;

@@ -16,18 +16,16 @@ export interface CashflowAnalysis {
   totalInflow: number;
   totalOutflow: number;
   netCashFlow: number;
-  breakdown: {
-    fixed: number;
-    variable: number;
-    savings: number;
-  };
-  percentages: {
-    fixedPct: number;
-    variablePct: number;
-    savingsPct: number;
+  needs: number;
+  wants: number;
+  savings: number;
+  budgetCompliance: {
+    needs: { actualPct: number; limitPct: number; status: string };
+    wants: { actualPct: number; limitPct: number; status: string };
+    savings: { actualPct: number; limitPct: number; status: string };
   };
   recommendation: string;
-  items?: Transaction[];
+  extractedTransactions?: Transaction[];
 }
 
 /**
@@ -66,21 +64,19 @@ export const analyzeTransactions = (transactions: Transaction[]): CashflowAnalys
   let savings = 0;
 
   transactions.forEach(tx => {
-    if (tx.amount > 0 || tx.category === 'Income') {
-      totalInflow += Math.abs(tx.amount);
+    const absAmount = Math.abs(tx.amount);
+    if (tx.category === 'Income') {
+      totalInflow += absAmount;
+    } else if (tx.category === 'Fixed') {
+      fixed += absAmount;
+    } else if (tx.category === 'Variable') {
+      variable += absAmount;
+    } else if (tx.category === 'Savings') {
+      savings += absAmount;
     } else {
-      const absAmount = Math.abs(tx.amount);
-      switch (tx.category) {
-        case 'Fixed':
-          fixed += absAmount;
-          break;
-        case 'Variable':
-          variable += absAmount;
-          break;
-        case 'Savings':
-          savings += absAmount;
-          break;
-      }
+      // Default behavior for Unknown or undefined categories
+      if (tx.amount > 0) totalInflow += absAmount;
+      else variable += absAmount;
     }
   });
 
@@ -104,13 +100,15 @@ export const analyzeTransactions = (transactions: Transaction[]): CashflowAnalys
     totalInflow,
     totalOutflow,
     netCashFlow,
-    breakdown: { fixed, variable, savings },
-    percentages: {
-      fixedPct: Math.round(fixedPct * 10) / 10,
-      variablePct: Math.round(variablePct * 10) / 10,
-      savingsPct: Math.round(savingsPct * 10) / 10
+    needs: fixed,
+    wants: variable,
+    savings,
+    budgetCompliance: {
+      needs: { actualPct: Math.round(fixedPct * 10) / 10, limitPct: 50, status: fixedPct > 50 ? 'Over Budget' : 'On Track' },
+      wants: { actualPct: Math.round(variablePct * 10) / 10, limitPct: 30, status: variablePct > 30 ? 'Over Budget' : 'On Track' },
+      savings: { actualPct: Math.round(savingsPct * 10) / 10, limitPct: 20, status: savingsPct >= 20 ? 'Target Met' : 'Under Target' }
     },
     recommendation,
-    items: transactions
+    extractedTransactions: transactions
   };
 };
