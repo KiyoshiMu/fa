@@ -280,7 +280,7 @@ const InvestmentProfiler: React.FC = () => {
                                     
                                     <div>
                                         <div className="text-foreground/50 text-xs mb-1 uppercase font-bold tracking-tighter">Recommended Profile</div>
-                                        <div className="text-4xl font-black bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent italic">
+                                        <div className="text-4xl font-black bg-gradient-to-r from-primary-400 to-blue-400 bg-clip-text text-transparent italic drop-shadow-sm">
                                             {state.profile.type}
                                         </div>
                                     </div>
