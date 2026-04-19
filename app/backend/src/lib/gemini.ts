@@ -10,7 +10,7 @@ export const transactionSchema = {
   items: {
     type: Type.OBJECT,
     properties: {
-      date: { type: Type.STRING, description: "Date of transaction" },
+      date: { type: Type.STRING, description: "Date of transaction in YYYY-MM-DD format" },
       description: { type: Type.STRING, description: "Original transaction description" },
       amount: { type: Type.NUMBER, description: "Transaction amount (negative for outflow)" },
       category: {

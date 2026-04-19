@@ -85,6 +85,10 @@ const CashFlowHub: React.FC = () => {
         setTransactions([...transactions, newTx]);
     };
 
+    const handleDeleteTransaction = (id: string) => {
+        setTransactions(transactions.filter(t => t.id !== id));
+    };
+
     const handleUpdateTransaction = (id: string, field: keyof Transaction, value: any) => {
         let finalValue = value;
         if (field === 'amount') {
@@ -111,11 +115,17 @@ const CashFlowHub: React.FC = () => {
         }
     };
 
+    useEffect(() => {
+        if (state.cashFlow && mode === 'manual') {
+            analyzeCashFlow(transactions).then(res => setCashFlow(res as any));
+        }
+    }, [transactions]);
+
     const COLORS = ['#0ea5e9', '#6366f1', '#10b981'];
     const pieData = state.cashFlow ? [
-        { name: 'Needs', value: state.cashFlow.needs },
-        { name: 'Wants', value: state.cashFlow.wants },
-        { name: 'Savings', value: state.cashFlow.savings }
+        { name: 'Needs', value: state.cashFlow?.needs || 0 },
+        { name: 'Wants', value: state.cashFlow?.wants || 0 },
+        { name: 'Savings', value: state.cashFlow?.savings || 0 }
     ].filter(d => d.value > 0) : [];
 
     return (
@@ -169,6 +179,7 @@ const CashFlowHub: React.FC = () => {
                                             <th className="px-6 py-4 font-bold">Description</th>
                                             <th className="px-6 py-4 font-bold">Category</th>
                                             <th className="px-6 py-4 font-bold text-right">Amount</th>
+                                            <th className="px-6 py-4 font-bold text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border/20">
@@ -210,6 +221,14 @@ const CashFlowHub: React.FC = () => {
                                                             className={`bg-transparent font-mono text-right focus:outline-none w-24 ${tx.category === 'Income' ? 'text-green-400' : 'text-red-400'}`}
                                                         />
                                                     </div>
+                                                </td>
+                                                <td className="px-6 py-3 text-center">
+                                                    <button
+                                                        onClick={() => handleDeleteTransaction(tx.id!)}
+                                                        className="p-2 text-foreground/20 hover:text-red-500 transition-colors group-hover:opacity-100"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}

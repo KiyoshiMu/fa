@@ -50,6 +50,8 @@ export const analyzeWithAI = async (input: string): Promise<Transaction[]> => {
     
     Input data:
     ${input}
+    
+    CRITICAL: Always return dates in YYYY-MM-DD format.
   `;
 
   const responseText = await generateCategorizedJSON(prompt);
@@ -71,14 +73,41 @@ export const analyzeWithAI = async (input: string): Promise<Transaction[]> => {
 
 /**
  * Perform budget analysis on categorized transactions
+ * CAPS analysis to a 30-day window from the latest transaction
  */
 export const analyzeTransactions = (transactions: Transaction[]): CashflowAnalysis => {
+  if (transactions.length === 0) {
+    return {
+      totalInflow: 0, totalOutflow: 0, netCashFlow: 0, 
+      needs: 0, wants: 0, savings: 0, 
+      budgetCompliance: {
+        needs: { actualPct: 0, limitPct: 50, status: 'On Track' },
+        wants: { actualPct: 0, limitPct: 30, status: 'On Track' },
+        savings: { actualPct: 0, limitPct: 20, status: 'Under Target' }
+      },
+      recommendation: "Add transactions to see your analysis.",
+      extractedTransactions: []
+    };
+  }
+
+  // 1. Identify "Latest Date" to define the 30-day window
+  const sortedByDate = [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const latestDate = new Date(sortedByDate[0].date);
+  const cutoffDate = new Date(latestDate);
+  cutoffDate.setDate(cutoffDate.getDate() - 30);
+
+  // 2. Filter transactions to only include the last month
+  const monthlyTransactions = transactions.filter(tx => {
+    const txDate = new Date(tx.date);
+    return txDate >= cutoffDate && txDate <= latestDate;
+  });
+
   let totalInflow = 0;
   let fixed = 0;
   let variable = 0;
   let savings = 0;
 
-  transactions.forEach(tx => {
+  monthlyTransactions.forEach(tx => {
     const absAmount = Math.abs(tx.amount);
     if (tx.category === 'Income') {
       totalInflow += absAmount;
@@ -89,7 +118,6 @@ export const analyzeTransactions = (transactions: Transaction[]): CashflowAnalys
     } else if (tx.category === 'Savings') {
       savings += absAmount;
     } else {
-      // Default behavior for Unknown or undefined categories
       if (tx.amount > 0) totalInflow += absAmount;
       else variable += absAmount;
     }
@@ -124,6 +152,6 @@ export const analyzeTransactions = (transactions: Transaction[]): CashflowAnalys
       savings: { actualPct: Math.round(savingsPct * 10) / 10, limitPct: 20, status: savingsPct >= 20 ? 'Target Met' : 'Under Target' }
     },
     recommendation,
-    extractedTransactions: transactions
+    extractedTransactions: sortedByDate // Return sorted list to UI
   };
 };

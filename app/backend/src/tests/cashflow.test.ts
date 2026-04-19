@@ -48,6 +48,22 @@ describe('CashflowService', () => {
             expect(analysis.budgetCompliance.needs.actualPct).toBe(62.5);
             expect(analysis.budgetCompliance.needs.status).toBe('Over Budget');
         });
+
+        it('filters transactions to a 30-day window from the latest item', () => {
+            const mixedTransactions = [
+                { date: '2026-04-30', description: 'Latest', amount: 1000, category: 'Income' as any },
+                { date: '2026-04-15', description: 'Mid', amount: -500, category: 'Fixed' as any },
+                { date: '2026-03-25', description: 'Old (Outside 30 days)', amount: -500, category: 'Fixed' as any }
+            ];
+
+            const analysis = analyzeTransactions(mixedTransactions);
+            
+            // Only 'Latest' ($1000) and 'Mid' (-$500) should be counted.
+            // Total Inflow: 1000, Needs: 500
+            expect(analysis.totalInflow).toBe(1000);
+            expect(analysis.needs).toBe(500);
+            expect(analysis.budgetCompliance.needs.actualPct).toBe(50);
+        });
     });
 
     describe('analyzeWithAI', () => {
