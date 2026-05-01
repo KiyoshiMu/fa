@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { calculateInvestmentProfile } from '../lib/api';
 import type { QuestionnaireAnswers } from '../lib/api';
-import { Loader2, Info, ChevronRight, CheckCircle2, ChevronLeft, ArrowRight } from 'lucide-react';
+import { Loader2, ChevronRight, CheckCircle2, ChevronLeft, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
+import { mapMonthsToTimeHorizon, mapIncomeToPoints, mapStabilityToPoints, mapConcentrationToPoints } from '../lib/mortgageUtils';
 
 const QUESTIONS = [
-  { id: 'timeHorizon', type: 'select', label: 'Time Horizon', text: 'When do you plan to reach this goal?', options: [
+  { id: 'timeHorizon', type: 'select', label: 'Time Horizon', text: 'When do you plan to reach this goal?', linked: true, options: [
       { id: 'a', label: '< 1 year' },
       { id: 'b', label: '1 - 3 years' },
       { id: 'c', label: '4 - 5 years' },
@@ -25,7 +26,7 @@ const QUESTIONS = [
       { id: 'c', label: 'Balanced (Income & Growth)' },
       { id: 'd', label: 'Growth (Max long-term gain)' },
   ]},
-  { id: 'q4Points', type: 'points', label: 'Annual Income', text: 'What is your total annual household income?', options: [
+  { id: 'q4Points', type: 'points', label: 'Annual Income', text: 'What is your total annual household income?', linked: true, options: [
       { id: 'a', label: '< $20k', points: 0 },
       { id: 'b', label: '$20-50k', points: 2 },
       { id: 'c', label: '$50-100k', points: 4 },
@@ -33,7 +34,7 @@ const QUESTIONS = [
       { id: 'e', label: '$150-200k', points: 7 },
       { id: 'f', label: '> $200k', points: 10 },
   ]},
-  { id: 'q5Points', type: 'points', label: 'Income Stability', text: 'How stable is your current source of income?', options: [
+  { id: 'q5Points', type: 'points', label: 'Income Stability', text: 'How stable is your current source of income?', linked: true, options: [
       { id: 'a', label: 'Very Stable', points: 8 },
       { id: 'b', label: 'Somewhat Stable', points: 4 },
       { id: 'c', label: 'Unstable', points: 1 },
@@ -54,7 +55,7 @@ const QUESTIONS = [
       { id: 'f', label: '$1-2M', points: 10 },
       { id: 'g', label: '> $2M', points: 12 },
   ]},
-  { id: 'q8Points', type: 'points', label: 'Concentration', text: 'What % of your portfolio is this investment?', options: [
+  { id: 'q8Points', type: 'points', label: 'Concentration', text: 'What % of your portfolio is this investment?', linked: true, options: [
       { id: 'a', label: '< 25%', points: 10 },
       { id: 'b', label: '25-50%', points: 5 },
       { id: 'c', label: '51-75%', points: 4 },
@@ -105,12 +106,123 @@ const QUESTIONS = [
   ]},
 ];
 
+// Radar Chart Component
+const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
+    const dimensions = [
+        { name: 'Resilience', key: 'viability' },
+        { name: 'Growth', key: 'offensiveness' },
+        { name: 'Decision', key: 'decision' },
+        { name: 'Horizon', key: 'endurance' },
+        { name: 'Context', key: 'adaptability' },
+    ];
+
+    const size = 300;
+    const center = size / 2;
+    const radius = size * 0.4;
+    const angleStep = (Math.PI * 2) / dimensions.length;
+
+    const points = dimensions.map((d, i) => {
+        const val = data[d.key] || 0.5; // normalized 0-1
+        const x = center + radius * val * Math.sin(i * angleStep);
+        const y = center - radius * val * Math.cos(i * angleStep);
+        return `${x},${y}`;
+    }).join(' ');
+
+    const gridLevels = [0.2, 0.4, 0.6, 0.8, 1];
+
+    return (
+        <div className="relative flex flex-col items-center">
+            <svg width={size} height={size} className="overflow-visible drop-shadow-2xl">
+                {/* Grids */}
+                {gridLevels.map(level => (
+                    <polygon
+                        key={level}
+                        points={dimensions.map((_, i) => {
+                            const x = center + radius * level * Math.sin(i * angleStep);
+                            const y = center - radius * level * Math.cos(i * angleStep);
+                            return `${x},${y}`;
+                        }).join(' ')}
+                        className="fill-transparent stroke-foreground/5"
+                    />
+                ))}
+                
+                {/* Axis lines */}
+                {dimensions.map((_, i) => (
+                    <line
+                        key={i}
+                        x1={center} y1={center}
+                        x2={center + radius * Math.sin(i * angleStep)}
+                        y2={center - radius * Math.cos(i * angleStep)}
+                        className="stroke-foreground/5"
+                    />
+                ))}
+
+                {/* Data Polygon */}
+                <polygon
+                    points={points}
+                    className="fill-primary-500/20 stroke-primary-500 stroke-2 transition-all duration-1000"
+                />
+
+                {/* Labels */}
+                {dimensions.map((d, i) => {
+                    const x = center + (radius + 25) * Math.sin(i * angleStep);
+                    const y = center - (radius + 25) * Math.cos(i * angleStep);
+                    return (
+                        <text
+                            key={d.key}
+                            x={x} y={y}
+                            className="text-[10px] font-black uppercase tracking-widest fill-foreground/40"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                        >
+                            {d.name}
+                        </text>
+                    );
+                })}
+            </svg>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                <div className="w-16 h-16 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center backdrop-blur-sm">
+                    <ShieldCheck className="w-8 h-8 text-primary-500" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const InvestmentProfiler: React.FC = () => {
     const { state, setProfile: setGlobalProfile, setStep } = useFinancial();
     const [answers, setAnswers] = useState<Partial<QuestionnaireAnswers>>({});
     const [currentStep, setCurrentStep] = useState(0);
     const [isWizard, setIsWizard] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    // Filter visible questions
+    const visibleQuestions = useMemo(() => QUESTIONS.filter(q => !q.linked), []);
+
+    // Calculate background points
+    useEffect(() => {
+        if (!state.goal) return;
+
+        const timeHorizon = mapMonthsToTimeHorizon(state.goal.months);
+        const annualIncome = (state.cashFlow?.totalInflow || 5000) * 12; // Fallback to 5k/mo
+        const incomePoints = mapIncomeToPoints(annualIncome);
+        const stabilityPoints = mapStabilityToPoints(state.payFrequency);
+        
+        // Context/Concentration: (Target - Savings) / NetWorth
+        // We might not have NetWorth yet if Q7 isn't answered. 
+        // We'll update this once answers['q7Points'] changes or use a default.
+        const netWorthMap: Record<number, number> = { 0: 25000, 2: 75000, 4: 175000, 6: 375000, 8: 750000, 10: 1500000, 12: 3000000 };
+        const netWorth = netWorthMap[answers.q7Points || 0] || 50000;
+        const concentrationPoints = mapConcentrationToPoints(state.goal.targetAmount - state.goal.currentSavings, netWorth);
+
+        setAnswers(prev => ({
+            ...prev,
+            timeHorizon,
+            q4Points: incomePoints,
+            q5Points: stabilityPoints,
+            q8Points: concentrationPoints
+        }));
+    }, [state.goal, state.cashFlow, state.payFrequency, answers.q7Points]);
 
     useEffect(() => {
         const handleResize = () => setIsWizard(window.innerWidth < 1024);
@@ -119,8 +231,8 @@ const InvestmentProfiler: React.FC = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const answeredCount = Object.keys(answers).length;
-    const isComplete = answeredCount === QUESTIONS.length;
+    const answeredCount = Object.keys(answers).filter(k => !QUESTIONS.find(q => q.id === k)?.linked).length;
+    const isComplete = answeredCount === visibleQuestions.length;
 
     const handleGenerate = async () => {
         if (!isComplete) return;
@@ -131,7 +243,6 @@ const InvestmentProfiler: React.FC = () => {
                 type: result.profile,
                 rate: result.returnRate
             });
-            // On mobile, scroll to results
             if (isWizard) {
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             }
@@ -144,25 +255,35 @@ const InvestmentProfiler: React.FC = () => {
 
     const handleSelectChange = (id: string, value: string) => {
         setAnswers(prev => ({ ...prev, [id]: value }));
-        if (isWizard && currentStep < QUESTIONS.length - 1) {
+        if (isWizard && currentStep < visibleQuestions.length - 1) {
             setTimeout(() => setCurrentStep(prev => prev + 1), 300);
         }
     };
 
     const handlePointChange = (id: string, value: number) => {
         setAnswers(prev => ({ ...prev, [id]: value }));
-        if (isWizard && currentStep < QUESTIONS.length - 1) {
+        if (isWizard && currentStep < visibleQuestions.length - 1) {
             setTimeout(() => setCurrentStep(prev => prev + 1), 300);
         }
     };
 
-    const getQuestionText = (q: typeof QUESTIONS[0]) => {
-        if (q.id === 'timeHorizon' && state.goal) {
-            const goalLabel = state.goal.type === 'Home' ? 'New Home' : state.goal.type === 'Vacation' ? 'Dream Vacation' : 'Purchase';
-            return `When do you plan to reach your goal for your ${goalLabel}?`;
-        }
-        return q.text;
-    };
+    // Radar Data Calculation (Normalized 0-1)
+    const radarData = useMemo(() => {
+        const getVal = (id: string) => {
+            const val = answers[id as keyof QuestionnaireAnswers];
+            if (typeof val === 'number') return val / 10;
+            if (typeof val === 'string') return (val.charCodeAt(0) - 97) / 4;
+            return 0.5;
+        };
+
+        return {
+            viability: (getVal('q5Points') + getVal('q6Points') + getVal('q11Points') + getVal('q14Points')) / 4,
+            offensiveness: (getVal('objectives') + getVal('q10Points') + getVal('q15Points')) / 3,
+            decision: (getVal('knowledge') + getVal('q12Points') + getVal('q13Points')) / 3,
+            endurance: (getVal('timeHorizon') + getVal('q9Points')) / 2,
+            adaptability: (getVal('q4Points') + getVal('q7Points') + getVal('q8Points')) / 3,
+        };
+    }, [answers]);
 
     const renderQuestion = (q: typeof QUESTIONS[0], idx: number) => (
         <div key={q.id} className="glass-card p-6 border border-border hover:border-border/60 transition-all duration-500 animate-in fade-in slide-in-from-right-4">
@@ -173,7 +294,7 @@ const InvestmentProfiler: React.FC = () => {
                 <div className="flex-1 space-y-4">
                     <div>
                         <h3 className="text-lg font-semibold text-foreground/90">{q.label}</h3>
-                        <p className="text-sm text-foreground/50 mt-1">{getQuestionText(q)}</p>
+                        <p className="text-sm text-foreground/50 mt-1">{q.text}</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -208,7 +329,7 @@ const InvestmentProfiler: React.FC = () => {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-foreground mb-2">Step 3: Risk Profiler</h2>
                     <p className="text-foreground/60 max-w-2xl text-sm italic">
-                        Determine your risk tolerance and find the optimal investment strategy for your {state.goal?.type || 'Goal'}.
+                        Your strategy is automatically adapting to your goals. Complete the remaining profile questions below.
                     </p>
                 </div>
             </div>
@@ -217,7 +338,7 @@ const InvestmentProfiler: React.FC = () => {
                 <div className="lg:col-span-2 space-y-6">
                     {isWizard ? (
                         <div className="space-y-6">
-                            {renderQuestion(QUESTIONS[currentStep], currentStep)}
+                            {renderQuestion(visibleQuestions[currentStep], currentStep)}
                             <div className="flex items-center justify-between gap-4 p-4 glass-card bg-secondary/40">
                                 <button
                                     disabled={currentStep === 0}
@@ -227,10 +348,10 @@ const InvestmentProfiler: React.FC = () => {
                                     <ChevronLeft className="w-4 h-4" /> Back
                                 </button>
                                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/20">
-                                    Step {currentStep + 1} of {QUESTIONS.length}
+                                    Step {currentStep + 1} of {visibleQuestions.length}
                                 </div>
                                 <button
-                                    disabled={currentStep === QUESTIONS.length - 1 || (!answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] && answers[QUESTIONS[currentStep].id as keyof QuestionnaireAnswers] !== 0)}
+                                    disabled={currentStep === visibleQuestions.length - 1 || (!answers[visibleQuestions[currentStep].id as keyof QuestionnaireAnswers] && answers[visibleQuestions[currentStep].id as keyof QuestionnaireAnswers] !== 0)}
                                     onClick={() => setCurrentStep(prev => prev + 1)}
                                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed transition-all font-mono"
                                 >
@@ -239,12 +360,17 @@ const InvestmentProfiler: React.FC = () => {
                             </div>
                         </div>
                     ) : (
-                        QUESTIONS.map((q, idx) => renderQuestion(q, idx))
+                        visibleQuestions.map((q, idx) => renderQuestion(q, idx))
                     )}
                 </div>
 
                 <div className="lg:col-span-1">
                     <div className="sticky top-8 space-y-6">
+                        <div className="glass-card p-10 bg-gradient-to-br from-primary-500/5 to-secondary/30 border-primary-500/10">
+                            <h4 className="text-[10px] font-black text-foreground/40 mb-8 uppercase tracking-[0.2em] text-center">Live Risk Archetype</h4>
+                            <RadarChart data={radarData} />
+                        </div>
+
                         {!state.profile ? (
                             <button
                                 onClick={handleGenerate}
@@ -268,48 +394,6 @@ const InvestmentProfiler: React.FC = () => {
                             </button>
                         )}
 
-                        {state.profile ? (
-                            <div className="glass-card p-8 border-primary-500/30 bg-primary-500/5 overflow-hidden relative animate-in zoom-in-95 duration-500">
-                                <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary-500/10 rounded-full blur-3xl opacity-50" />
-                                
-                                <div className="relative z-10 space-y-6">
-                                    <div className="flex items-center gap-3 text-primary-400 text-sm font-black uppercase tracking-widest">
-                                        <div className="w-8 h-[2px] bg-primary-500 shadow-[0_0_10px_rgba(14,165,233,1)]" />
-                                        Your Result
-                                    </div>
-                                    
-                                    <div>
-                                        <div className="text-foreground/50 text-xs mb-1 uppercase font-bold tracking-tighter">Recommended Profile</div>
-                                        <div className="text-4xl font-black bg-gradient-to-r from-primary-400 to-blue-400 bg-clip-text text-transparent italic drop-shadow-sm">
-                                            {state.profile.type}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-4 pt-4 border-t border-border">
-                                        <div className="space-y-1">
-                                            <div className="text-[10px] text-foreground/30 font-bold uppercase tracking-tighter">Annual Return (EST)</div>
-                                            <div className="text-2xl font-black text-green-500">
-                                                {(state.profile.rate * 100).toFixed(1)}%
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 text-[10px] text-foreground/50 italic leading-relaxed">
-                                        <Info className="w-3 h-3 mb-2 opacity-50" />
-                                        Based on our back-end math models. Final solution in Step 4.
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="glass-card p-12 border-border/40 flex flex-col items-center justify-center text-center space-y-4 opacity-100">
-                                <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-2">
-                                    <Info className="w-8 h-8 text-primary-500/20" />
-                                </div>
-                                <h3 className="text-lg font-bold text-foreground/40 leading-tight">Evaluation Pending</h3>
-                                <p className="text-xs text-foreground/30 italic">Questionnaire data required to generate risk profile.</p>
-                            </div>
-                        )}
-
                         <div className="glass-card p-6 border-border/40 bg-secondary/20">
                             <h4 className="text-[10px] font-black text-foreground/40 mb-4 flex items-center gap-2 uppercase tracking-widest">
                                 <CheckCircle2 className="w-4 h-4 text-primary-500/50" />
@@ -319,12 +403,12 @@ const InvestmentProfiler: React.FC = () => {
                                 <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                                     <div 
                                         className="h-full bg-gradient-to-r from-primary-600 to-blue-500 transition-all duration-500" 
-                                        style={{ width: `${(answeredCount / QUESTIONS.length) * 100}%` }}
+                                        style={{ width: `${(answeredCount / visibleQuestions.length) * 100}%` }}
                                     />
                                 </div>
                                 <div className="flex justify-between text-[10px] font-black text-foreground/40 uppercase tracking-widest">
-                                    <span>{answeredCount} / {QUESTIONS.length} Complete</span>
-                                    <span>{answeredCount === QUESTIONS.length ? 'Finalized' : 'In Progress'}</span>
+                                    <span>{answeredCount} / {visibleQuestions.length} Complete</span>
+                                    <span>{answeredCount === visibleQuestions.length ? 'Finalized' : 'In Progress'}</span>
                                 </div>
                             </div>
                         </div>

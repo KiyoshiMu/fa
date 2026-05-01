@@ -1,41 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useFinancial } from '../FinancialContext';
 import { analyzeAdvisory } from '../lib/api';
 import type { AdvisoryResponse } from '../lib/api';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
-import { Rocket, ShieldCheck, AlertCircle, ArrowRight, ExternalLink, TrendingUp, Wallet, Lightbulb, Loader2 } from 'lucide-react';
+import { Rocket, ShieldCheck, AlertCircle, ArrowRight, ExternalLink, TrendingUp, Wallet, Lightbulb, Loader2, Clock } from 'lucide-react';
 
 const SolutionsHub: React.FC = () => {
-    const { state, reset } = useFinancial();
+    const { state, setGoal, reset } = useFinancial();
     const [analysis, setAnalysis] = useState<AdvisoryResponse | null>(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [localMonths, setLocalMonths] = useState(state.goal?.months || 36);
+
+    const fetchAnalysis = async (months: number) => {
+        if (!state.goal || !state.profile || !state.cashFlow) return;
+        
+        setLoading(true);
+        try {
+            const result = await analyzeAdvisory({
+                surplus: state.cashFlow.netCashFlow,
+                targetAmount: state.goal.targetAmount,
+                currentSavings: state.goal.currentSavings,
+                months: months,
+                profileType: state.profile.type,
+                annualRate: state.profile.rate
+            });
+            setAnalysis(result);
+        } catch (err: any) {
+            console.error('Failed to fetch advisory analysis', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchAnalysis = async () => {
-            if (!state.goal || !state.profile || !state.cashFlow) return;
-            
-            setLoading(true);
-            setError(null);
-            try {
-                const result = await analyzeAdvisory({
-                    surplus: state.cashFlow.netCashFlow,
-                    targetAmount: state.goal.targetAmount,
-                    currentSavings: state.goal.currentSavings,
-                    months: state.goal.months,
-                    profileType: state.profile.type,
-                    annualRate: state.profile.rate
-                });
-                setAnalysis(result);
-            } catch (err: any) {
-                setError(err.message || 'Failed to fetch advisory analysis');
-            } finally {
-                setLoading(false);
-            }
-        };
+        fetchAnalysis(localMonths);
+    }, [state.goal?.targetAmount, state.profile, state.cashFlow]);
 
-        fetchAnalysis();
-    }, [state.goal, state.profile, state.cashFlow]);
+    // Handle slider change
+    const handleMonthChange = (val: number) => {
+        setLocalMonths(val);
+        // Debounce or just fetch
+        fetchAnalysis(val);
+        // Sync with global state if needed
+        if (state.goal) {
+            setGoal({ ...state.goal, months: val });
+        }
+    };
 
     if (!state.goal || !state.profile || !state.cashFlow) {
         return (
@@ -47,40 +57,52 @@ const SolutionsHub: React.FC = () => {
         );
     }
 
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center p-20 text-center space-y-4 animate-in fade-in duration-500">
-                <Loader2 className="w-12 h-12 text-primary-500 animate-spin" />
-                <h2 className="text-xl font-bold text-foreground/40">Analyzing Strategy...</h2>
-                <p className="text-sm text-foreground/20 italic font-mono">Running backend advisory engine</p>
-            </div>
-        );
-    }
-
-    if (error || !analysis) {
-        return (
-            <div className="flex flex-col items-center justify-center p-20 text-center space-y-4 text-red-400">
-                <AlertCircle className="w-12 h-12" />
-                <h2 className="text-xl font-bold">Analysis Error</h2>
-                <p className="text-sm italic">{error || 'Unable to generate analysis'}</p>
-                <button 
-                    onClick={() => window.location.reload()}
-                    className="mt-4 px-6 py-2 bg-red-500/10 border border-red-500/20 rounded-xl font-bold uppercase tracking-widest text-[10px]"
-                >
-                    Retry Analysis
-                </button>
-            </div>
-        );
-    }
-
-    const { pmtWithInvest, pmtCashOnly, savingsGain, gap, isShort, recommendedETF } = analysis;
-    const { targetAmount, rate } = { targetAmount: state.goal.targetAmount, rate: state.profile.rate };
+    const { pmtWithInvest, pmtCashOnly, savingsGain, gap, isShort, recommendedETF } = analysis || { 
+        pmtWithInvest: 0, pmtCashOnly: 0, savingsGain: 0, gap: 0, isShort: false, 
+        recommendedETF: { ticker: 'VBAL', name: 'Balanced', desc: '60/40' } 
+    };
+    
+    const targetAmount = state.goal.targetAmount;
+    const rate = state.profile.rate;
     const surplus = state.cashFlow.netCashFlow;
 
     const chartData = [
         { name: 'Cash Only', amount: Math.round(pmtCashOnly) },
         { name: 'Invested', amount: Math.round(pmtWithInvest) },
     ];
+
+    // Contribution Allocation Logic (Plan based)
+    const allocations = useMemo(() => {
+        const monthly = pmtWithInvest;
+        const annualIncome = (state.cashFlow?.totalInflow || 5000) * 12;
+        
+        // Limits
+        const fhsaMonthlyLimit = 4000 / 12; // $333
+        const rrspMonthlyLimit = (annualIncome * 0.18) / 12;
+        
+        const calcFreq = (total: number, freq: 'monthly' | 'semi-monthly' | 'bi-weekly') => {
+            const divisors = { 'monthly': 1, 'semi-monthly': 2, 'bi-weekly': 2.166 }; // 26/12
+            const currentTotal = total / divisors[freq];
+            
+            let fhsa = Math.min(currentTotal, (fhsaMonthlyLimit / divisors[freq]));
+            let remaining = currentTotal - fhsa;
+            
+            let rrsp = Math.min(remaining, (rrspMonthlyLimit / divisors[freq]));
+            let tfsa = Math.max(0, remaining - rrsp);
+            
+            return { fhsa, rrsp, tfsa };
+        };
+
+        return {
+            monthly: calcFreq(monthly, 'monthly'),
+            semiMonthly: calcFreq(monthly, 'semi-monthly'),
+            biWeekly: calcFreq(monthly, 'bi-weekly')
+        };
+    }, [pmtWithInvest, state.cashFlow]);
+
+    const currentAlloc = state.payFrequency === 'monthly' ? allocations.monthly : 
+                   state.payFrequency === 'semi-monthly' ? allocations.semiMonthly : 
+                   allocations.biWeekly;
 
     return (
         <div className="space-y-12 animate-in fade-in zoom-in-95 duration-1000">
@@ -90,8 +112,39 @@ const SolutionsHub: React.FC = () => {
                 </div>
                 <h2 className="text-4xl lg:text-5xl font-black tracking-tight text-foreground">Your Path to ${targetAmount.toLocaleString()}</h2>
                 <p className="text-foreground/40 text-lg max-w-2xl mx-auto italic font-medium">
-                    Integrated analysis complete. Here is your deterministic strategy for success.
+                    Integrated analysis complete. Adjust your timeline or follow the breakdown below.
                 </p>
+            </div>
+
+            {/* Time Slider Bar */}
+            <div className="glass-card p-6 border-primary-500/20 bg-primary-500/5">
+                <div className="flex flex-col md:flex-row items-center gap-8">
+                    <div className="flex items-center gap-4 min-w-[200px]">
+                        <div className="p-3 rounded-2xl bg-primary-500/20 text-primary-500">
+                            <Clock className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-foreground/40">Adjust Timeline</div>
+                            <div className="text-xl font-black text-foreground">{localMonths} Months</div>
+                        </div>
+                    </div>
+                    <div className="flex-1 w-full pt-2">
+                        <input
+                            type="range"
+                            min="6"
+                            max="120"
+                            step="6"
+                            value={localMonths}
+                            onChange={(e) => handleMonthChange(Number(e.target.value))}
+                            className="w-full h-3 bg-secondary rounded-full appearance-none cursor-pointer accent-primary-500 shadow-inner"
+                        />
+                        <div className="flex justify-between mt-3 text-[10px] font-black text-foreground/20 uppercase tracking-widest">
+                            <span>Short Term (6m)</span>
+                            <span>Medium Term (5y)</span>
+                            <span>Long Term (10y)</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -106,43 +159,84 @@ const SolutionsHub: React.FC = () => {
                                     <h3 className="text-sm font-black text-foreground/40 uppercase tracking-widest flex items-center gap-2">
                                         <TrendingUp className="w-4 h-4 text-primary-500" /> Monthly Savings Delta
                                     </h3>
-                                    <p className="text-xs text-foreground/30 font-medium leading-relaxed italic">
-                                        Investing allows you to save <span className="text-green-500 font-black">${Math.round(savingsGain).toLocaleString()}/mo</span> less due to compound interest.
-                                    </p>
+                                    {loading ? (
+                                        <div className="h-4 w-32 bg-foreground/5 animate-pulse rounded" />
+                                    ) : (
+                                        <p className="text-xs text-foreground/30 font-medium leading-relaxed italic">
+                                            Investing allows you to save <span className="text-green-500 font-black">${Math.round(savingsGain).toLocaleString()}/mo</span> less due to compound interest.
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="p-6 rounded-3xl bg-secondary/50 border border-border/40">
                                         <div className="text-[10px] font-black text-foreground/30 uppercase tracking-tighter mb-1">Cash Only</div>
-                                        <div className="text-2xl font-black text-foreground/60">${Math.round(pmtCashOnly).toLocaleString()}</div>
+                                        {loading ? <div className="h-8 w-20 bg-foreground/5 animate-pulse rounded" /> : <div className="text-2xl font-black text-foreground/60">${Math.round(pmtCashOnly).toLocaleString()}</div>}
                                         <div className="text-[10px] text-foreground/20 italic">monthly</div>
                                     </div>
                                     <div className="p-6 rounded-3xl bg-primary-500/5 border border-primary-500/20 shadow-xl shadow-primary-500/5">
                                         <div className="text-[10px] font-black text-primary-500 uppercase tracking-tighter mb-1">With Investment</div>
-                                        <div className="text-3xl font-black text-primary-500">${Math.round(pmtWithInvest).toLocaleString()}</div>
+                                        {loading ? <div className="h-10 w-24 bg-foreground/5 animate-pulse rounded" /> : <div className="text-3xl font-black text-primary-500">${Math.round(pmtWithInvest).toLocaleString()}</div>}
                                         <div className="text-[10px] text-primary-500/40 italic">monthly @ {(rate*100).toFixed(1)}%</div>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="w-full lg:w-1/2 h-64">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 'bold' }} />
-                                        <Tooltip 
-                                            cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                                            contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
-                                        />
-                                        <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={60}>
-                                            {chartData.map((_entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={index === 1 ? '#0ea5e9' : 'rgba(255,255,255,0.1)'} strokeWidth={index === 1 ? 2 : 0} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                {loading ? (
+                                    <div className="w-full h-full bg-foreground/5 animate-pulse rounded-3xl flex items-center justify-center">
+                                        <Loader2 className="w-8 h-8 text-primary-500 animate-spin opacity-20" />
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 'bold' }} />
+                                            <Tooltip 
+                                                cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                                                contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                                            />
+                                            <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={60}>
+                                                {chartData.map((_entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={index === 1 ? '#0ea5e9' : 'rgba(255,255,255,0.1)'} strokeWidth={index === 1 ? 2 : 0} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                )}
                             </div>
                         </div>
+                    </div>
+
+                    {/* Freq Breakdown (image1.png / image5.png style) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[
+                            { label: 'Bi-Weekly', val: allocations.biWeekly, color: 'text-primary-400' },
+                            { label: 'Semi-Monthly', val: allocations.semiMonthly, color: 'text-indigo-400' },
+                            { label: 'Monthly', val: allocations.monthly, color: 'text-emerald-400' }
+                        ].map((item) => (
+                            <div key={item.label} className={`p-8 rounded-[2rem] glass-card border border-border/40 relative overflow-hidden ${state.payFrequency.toLowerCase().includes(item.label.toLowerCase().split('-')[0]) ? 'ring-2 ring-primary-500 bg-primary-500/5' : ''}`}>
+                                <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-6">{item.label} Result</h5>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-foreground/60 italic">FHSA</span>
+                                        <span className="text-lg font-black text-foreground">${Math.round(item.val.fhsa).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-foreground/60 italic">RRSP (HBP)</span>
+                                        <span className="text-lg font-black text-foreground">${Math.round(item.val.rrsp).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-foreground/60 italic">TFSA</span>
+                                        <span className="text-lg font-black text-foreground">${Math.round(item.val.tfsa).toLocaleString()}</span>
+                                    </div>
+                                    <div className="pt-4 border-t border-border/40 flex justify-between items-center">
+                                        <span className="text-[10px] font-black uppercase text-primary-500">Total</span>
+                                        <span className={`text-xl font-black ${item.color}`}>${Math.round(item.val.fhsa + item.val.rrsp + item.val.tfsa).toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -170,7 +264,7 @@ const SolutionsHub: React.FC = () => {
                                     <p className="text-xs text-foreground/50 mt-2 font-medium leading-relaxed">
                                         {!isShort 
                                             ? `Great news! Your monthly surplus of $${surplus.toLocaleString()} covers the necessary $${Math.round(pmtWithInvest).toLocaleString()} contribution.`
-                                            : `You are short $${Math.round(gap).toLocaleString()} per month. To hit your ${state.goal.months}-month goal, you need to increase your savings or adjust your timeline.`}
+                                            : `You are short $${Math.round(gap).toLocaleString()} per month. To hit your ${localMonths}-month goal, you need to increase your savings or adjust your timeline.`}
                                     </p>
                                 </div>
 
@@ -180,7 +274,7 @@ const SolutionsHub: React.FC = () => {
                                             <Lightbulb className="w-4 h-4" /> Recommendation
                                         </div>
                                         <p className="text-[11px] text-foreground/60 leading-relaxed italic">
-                                            You currently spend <span className="font-black text-foreground">${state.cashFlow.wants.toLocaleString()}</span> on 'Wants'. Redirecting <span className="font-black text-foreground">${Math.round(Math.min(gap, state.cashFlow.wants)).toLocaleString()}</span> of this would close the gap.
+                                            You currently spend <span className="font-black text-foreground">${state.cashFlow?.wants.toLocaleString()}</span> on 'Wants'. Redirecting <span className="font-black text-foreground">${Math.round(Math.min(gap, state.cashFlow?.wants || 0)).toLocaleString()}</span> of this would close the gap.
                                         </p>
                                     </div>
                                 )}
@@ -225,7 +319,7 @@ const SolutionsHub: React.FC = () => {
                             <div className="space-y-6">
                                 {[
                                     { title: 'Setup Account', desc: state.goal.type === 'Home' ? 'Open an FHSA with a discount brokerage.' : 'Open a TFSA with a discount brokerage.', done: state.goal.hasFHSAOrTFSA },
-                                    { title: 'Redirection', desc: isShort ? `Transfer $${Math.round(pmtWithInvest).toLocaleString()} from spending to savings.` : `Commit $${Math.round(pmtWithInvest).toLocaleString()} of your monthly surplus.` },
+                                    { title: 'Pay Yourself First', desc: `Redirect $${Math.round(currentAlloc.fhsa + currentAlloc.rrsp + currentAlloc.tfsa).toLocaleString()} ${state.payFrequency} automatically upon receiving your salary.`, icon: ShieldCheck },
                                     { title: 'Purchase ETF', desc: `Buy shares of ${recommendedETF.ticker} monthly.` },
                                 ].map((step, i) => (
                                     <div key={i} className="flex gap-4">
@@ -241,7 +335,21 @@ const SolutionsHub: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="mt-auto space-y-4">
+                        <div className="p-6 rounded-3xl bg-primary-500/5 border border-primary-500/10 space-y-4">
+                            <h5 className="text-[10px] font-black uppercase tracking-widest text-primary-500">Summary</h5>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold text-foreground/60">
+                                    <span>Target Date</span>
+                                    <span>{new Date(Date.now() + localMonths * 30 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}</span>
+                                </div>
+                                <div className="flex justify-between text-xs font-bold text-foreground/60">
+                                    <span>Profile</span>
+                                    <span>{state.profile.type}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-auto pt-6 space-y-4">
                             <button className="w-full py-5 bg-primary-600 hover:bg-primary-500 text-white font-black uppercase tracking-[0.2em] rounded-[1.5rem] transition-all duration-300 shadow-xl shadow-primary-500/20 flex items-center justify-center gap-3">
                                 Talk to an Advisor <ArrowRight className="w-5 h-5" />
                             </button>
