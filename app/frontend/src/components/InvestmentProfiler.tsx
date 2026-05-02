@@ -1,11 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { calculateInvestmentProfile } from '../lib/api';
 import type { QuestionnaireAnswers } from '../lib/api';
-import { Loader2, ChevronRight, CheckCircle2, ChevronLeft, ArrowRight, ShieldCheck, Compass, Target, Zap, Anchor, Activity } from 'lucide-react';
+import { Loader2, ChevronRight, CheckCircle2, ChevronLeft, ArrowRight, Compass, Target, Zap, Anchor, Activity } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 import { mapMonthsToTimeHorizon, mapIncomeToPoints, mapStabilityToPoints, mapConcentrationToPoints } from '../lib/mortgageUtils';
 
-const QUESTIONS = [
+interface QuestionOption {
+  id: string;
+  label: string;
+  points?: number;
+}
+
+interface Question {
+  id: string;
+  type: string;
+  label: string;
+  text: string;
+  linked?: boolean;
+  options: QuestionOption[];
+}
+
+const QUESTIONS: Question[] = [
   { id: 'timeHorizon', type: 'select', label: 'Time Horizon', text: 'When do you plan to reach this goal?', linked: true, options: [
       { id: 'a', label: '< 1 year' },
       { id: 'b', label: '1 - 3 years' },
@@ -199,30 +214,27 @@ const InvestmentProfiler: React.FC = () => {
     // Filter visible questions
     const visibleQuestions = useMemo(() => QUESTIONS.filter(q => !q.linked), []);
 
-    // Calculate background points
-    useEffect(() => {
-        if (!state.goal) return;
+    // Combined final answers (State + Derived)
+    const finalAnswers = useMemo(() => {
+        const base: Partial<QuestionnaireAnswers> = { ...answers };
+        if (!state.goal) return base as QuestionnaireAnswers;
 
         const timeHorizon = mapMonthsToTimeHorizon(state.goal.months);
-        const annualIncome = (state.cashFlow?.totalInflow || 5000) * 12; // Fallback to 5k/mo
+        const annualIncome = (state.cashFlow?.totalInflow || 5000) * 12;
         const incomePoints = mapIncomeToPoints(annualIncome);
         const stabilityPoints = mapStabilityToPoints(state.payFrequency);
-        
-        // Context/Concentration: (Target - Savings) / NetWorth
-        // We might not have NetWorth yet if Q7 isn't answered. 
-        // We'll update this once answers['q7Points'] changes or use a default.
         const netWorthMap: Record<number, number> = { 0: 25000, 2: 75000, 4: 175000, 6: 375000, 8: 750000, 10: 1500000, 12: 3000000 };
         const netWorth = netWorthMap[answers.q7Points || 0] || 50000;
         const concentrationPoints = mapConcentrationToPoints(state.goal.targetAmount - state.goal.currentSavings, netWorth);
 
-        setAnswers(prev => ({
-            ...prev,
+        return {
+            ...base,
             timeHorizon,
             q4Points: incomePoints,
             q5Points: stabilityPoints,
             q8Points: concentrationPoints
-        }));
-    }, [state.goal, state.cashFlow, state.payFrequency, answers.q7Points]);
+        } as QuestionnaireAnswers;
+    }, [answers, state.goal, state.cashFlow, state.payFrequency]);
 
     useEffect(() => {
         const handleResize = () => setIsWizard(window.innerWidth < 1024);
@@ -238,7 +250,7 @@ const InvestmentProfiler: React.FC = () => {
         if (!isComplete) return;
         setLoading(true);
         try {
-            const result = await calculateInvestmentProfile(answers as QuestionnaireAnswers);
+            const result = await calculateInvestmentProfile(finalAnswers);
             setGlobalProfile({
                 type: result.profile,
                 rate: result.returnRate
@@ -267,10 +279,9 @@ const InvestmentProfiler: React.FC = () => {
         }
     };
 
-    // Radar Data Calculation (Normalized 0-1)
     const radarData = useMemo(() => {
         const getVal = (id: string) => {
-            const val = answers[id as keyof QuestionnaireAnswers];
+            const val = finalAnswers[id as keyof QuestionnaireAnswers];
             if (typeof val === 'number') return val / 10;
             if (typeof val === 'string') return (val.charCodeAt(0) - 97) / 4;
             return 0.5;
@@ -283,7 +294,7 @@ const InvestmentProfiler: React.FC = () => {
             endurance: (getVal('timeHorizon') + getVal('q9Points')) / 2,
             adaptability: (getVal('q4Points') + getVal('q7Points') + getVal('q8Points')) / 3,
         };
-    }, [answers]);
+    }, [finalAnswers]);
 
     const renderQuestion = (q: typeof QUESTIONS[0], idx: number) => (
         <div key={q.id} className="glass-card p-6 border border-border hover:border-border/60 transition-all duration-500 animate-in fade-in slide-in-from-right-4">
@@ -301,12 +312,12 @@ const InvestmentProfiler: React.FC = () => {
                         {q.options.map(opt => {
                             const isSelected = q.type === 'select' 
                                 ? answers[q.id as keyof QuestionnaireAnswers] === opt.id
-                                : answers[q.id as keyof QuestionnaireAnswers] === (opt as any).points;
+                                : answers[q.id as keyof QuestionnaireAnswers] === opt.points;
                             
                             return (
                                 <button
                                     key={opt.id}
-                                    onClick={() => q.type === 'select' ? handleSelectChange(q.id, opt.id) : handlePointChange(q.id, (opt as any).points)}
+                                    onClick={() => q.type === 'select' ? handleSelectChange(q.id, opt.id) : handlePointChange(q.id, opt.points!)}
                                     className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 ${
                                         isSelected
                                             ? 'bg-primary-500/10 border-primary-500 text-primary-500 shadow-[0_0_15px_rgba(14,165,233,0.1)]'

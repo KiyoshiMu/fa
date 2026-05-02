@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Home, Plane, Sparkles, ArrowRight, DollarSign, Calendar, ShieldCheck, Info, Building2, Layout, Landmark, Construction } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 import type { GoalType, PropertyType, PayFrequency } from '../FinancialContext';
@@ -22,32 +22,31 @@ const GoalOnboarding: React.FC = () => {
     const [payFreq, setPayFreq] = useState<PayFrequency>(state.payFrequency || 'bi-weekly');
 
     // Auto-calculate target amount for housing
-    useEffect(() => {
-        if (goalType === 'Home') {
-            const median = PROPERTY_MEDIANS[propertyType];
-            let dpAmount = 0;
-            
-            if (dpPct === 0.05) {
-                // Tiered Min DP calculation
-                dpAmount = calculateMinDP(median);
-            } else if (dpPct === 0.20) {
-                dpAmount = median * 0.20;
-            } else if (dpPct === 0.35) {
-                dpAmount = customDP;
-            } else {
-                dpAmount = median * dpPct;
-            }
-
-            const { insuranceAmount } = calculateCMHC(median, dpAmount);
-            setTargetAmount(Math.round(dpAmount + insuranceAmount));
+    const displayTargetAmount = useMemo(() => {
+        if (goalType !== 'Home') return targetAmount;
+        
+        const median = PROPERTY_MEDIANS[propertyType];
+        let dpAmount = 0;
+        
+        if (dpPct === 0.05) {
+            dpAmount = calculateMinDP(median);
+        } else if (dpPct === 0.20) {
+            dpAmount = median * 0.20;
+        } else if (dpPct === 0.35) {
+            dpAmount = customDP;
+        } else {
+            dpAmount = median * dpPct;
         }
-    }, [goalType, propertyType, dpPct, customDP]);
+
+        const { insuranceAmount } = calculateCMHC(median, dpAmount);
+        return Math.round(dpAmount + insuranceAmount);
+    }, [goalType, propertyType, dpPct, customDP, targetAmount]);
 
     const handleContinue = () => {
         setPayFrequency(payFreq);
         setGoal({
             type: goalType,
-            targetAmount,
+            targetAmount: displayTargetAmount,
             currentSavings,
             months,
             hasFHSAOrTFSA: hasFHSA,
@@ -207,12 +206,12 @@ const GoalOnboarding: React.FC = () => {
                                         <div className="flex justify-between items-end">
                                             <div>
                                                 <div className="text-[10px] font-black uppercase tracking-widest text-primary-500/60">Estimated Target</div>
-                                                <div className="text-3xl font-black text-foreground">${targetAmount.toLocaleString()}</div>
+                                                <div className="text-3xl font-black text-foreground">${displayTargetAmount.toLocaleString()}</div>
                                             </div>
                                             <div className="text-right">
                                                 <div className="text-[10px] font-black uppercase tracking-widest text-foreground/30">DP + Insurance</div>
                                                 <div className="text-xs font-bold text-foreground/60 italic">
-                                                    {dpPct < 0.2 ? `Incl. approx $${(targetAmount - (dpPct === 0.05 ? calculateMinDP(PROPERTY_MEDIANS[propertyType]) : PROPERTY_MEDIANS[propertyType] * dpPct)).toLocaleString()} insurance` : 'No CMHC Insurance'}
+                                                    {dpPct < 0.2 ? `Incl. approx $${(displayTargetAmount - (dpPct === 0.05 ? calculateMinDP(PROPERTY_MEDIANS[propertyType]) : PROPERTY_MEDIANS[propertyType] * dpPct)).toLocaleString()} insurance` : 'No CMHC Insurance'}
                                                 </div>
                                             </div>
                                         </div>

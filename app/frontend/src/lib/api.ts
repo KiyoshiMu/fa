@@ -59,7 +59,11 @@ export interface AnalysisResponse {
   totalInflow: number;
   totalOutflow: number;
   netCashFlow: number;
-  budgetCompliance: any;
+  budgetCompliance: {
+    needs: { actualPct: number; limitPct: number; status: string };
+    wants: { actualPct: number; limitPct: number; status: string };
+    savings: { actualPct: number; limitPct: number; status: string };
+  };
   recommendation: string;
   extractedTransactions?: Transaction[];
   startDate?: string;

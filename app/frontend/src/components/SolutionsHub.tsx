@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFinancial } from '../FinancialContext';
 import { analyzeAdvisory } from '../lib/api';
 import type { AdvisoryResponse } from '../lib/api';
@@ -11,7 +11,7 @@ const SolutionsHub: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [localMonths, setLocalMonths] = useState(state.goal?.months || 36);
 
-    const fetchAnalysis = async (months: number) => {
+    const fetchAnalysis = useCallback(async (months: number) => {
         if (!state.goal || !state.profile || !state.cashFlow) return;
         
         setLoading(true);
@@ -25,16 +25,19 @@ const SolutionsHub: React.FC = () => {
                 annualRate: state.profile.rate
             });
             setAnalysis(result);
-        } catch (err: any) {
+        } catch (err) {
             console.error('Failed to fetch advisory analysis', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [state.goal, state.profile, state.cashFlow]);
 
     useEffect(() => {
-        fetchAnalysis(localMonths);
-    }, [state.goal?.targetAmount, state.profile, state.cashFlow]);
+        const load = async () => {
+            await fetchAnalysis(localMonths);
+        };
+        load();
+    }, [fetchAnalysis, localMonths]);
 
     // Handle slider change
     const handleMonthChange = (val: number) => {
@@ -47,15 +50,7 @@ const SolutionsHub: React.FC = () => {
         }
     };
 
-    if (!state.goal || !state.profile || !state.cashFlow) {
-        return (
-            <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
-                <AlertCircle className="w-12 h-12 text-foreground/20" />
-                <h2 className="text-xl font-bold text-foreground/40">Incomplete Journey</h2>
-                <p className="text-sm text-foreground/20 italic">Please complete steps 1, 2, and 3 first.</p>
-            </div>
-        );
-    }
+
 
     const { pmtWithInvest, pmtCashOnly, savingsGain, gap, isShort, recommendedETF } = analysis || { 
         pmtWithInvest: 0, pmtCashOnly: 0, savingsGain: 0, gap: 0, isShort: false, 
@@ -78,24 +73,22 @@ const SolutionsHub: React.FC = () => {
         
         // Limits from Plan
         const fhsaAnnualLimit = 4000;
-        const fhsaLifetimeLimit = 50000;
         const fhsaMonthlyLimit = fhsaAnnualLimit / 12; // ~$333
         
         const rrspMonthlyLimit = (annualIncome * 0.18) / 12;
-        const rrspHBPMax = 35000;
         
         const calcFreq = (total: number, freq: 'monthly' | 'semi-monthly' | 'bi-weekly') => {
             const divisors = { 'monthly': 1, 'semi-monthly': 2, 'bi-weekly': 2.166 }; // 26/12
             const currentTotal = total / divisors[freq];
             
             // FHSA First
-            let fhsa = Math.min(currentTotal, (fhsaMonthlyLimit / divisors[freq]));
-            let remaining = currentTotal - fhsa;
+            const fhsa = Math.min(currentTotal, (fhsaMonthlyLimit / divisors[freq]));
+            const remaining = currentTotal - fhsa;
             
             // RRSP Second (considering HBP limit)
             // Note: HBP is a withdrawal limit, but here we assume we contribute towards it
-            let rrsp = Math.min(remaining, (rrspMonthlyLimit / divisors[freq]));
-            let tfsa = Math.max(0, remaining - rrsp);
+            const rrsp = Math.min(remaining, (rrspMonthlyLimit / divisors[freq]));
+            const tfsa = Math.max(0, remaining - rrsp);
             
             return { fhsa, rrsp, tfsa };
         };
@@ -105,7 +98,7 @@ const SolutionsHub: React.FC = () => {
             semiMonthly: calcFreq(monthly, 'semi-monthly'),
             biWeekly: calcFreq(monthly, 'bi-weekly')
         };
-    }, [pmtWithInvest, state.cashFlow, state.goal]);
+    }, [pmtWithInvest, state.cashFlow]);
 
     // FHSA 5-Year Growth Data
     const fhsaGrowthData = useMemo(() => {
@@ -128,6 +121,21 @@ const SolutionsHub: React.FC = () => {
     const currentAlloc = state.payFrequency === 'monthly' ? allocations.monthly : 
                    state.payFrequency === 'semi-monthly' ? allocations.semiMonthly : 
                    allocations.biWeekly;
+
+    const [now] = useState(() => Date.now());
+    const targetDateString = useMemo(() => {
+        return new Date(now + localMonths * 30 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+    }, [localMonths, now]);
+
+    if (!state.goal || !state.profile || !state.cashFlow) {
+        return (
+            <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
+                <AlertCircle className="w-12 h-12 text-foreground/20" />
+                <h2 className="text-xl font-bold text-foreground/40">Incomplete Journey</h2>
+                <p className="text-sm text-foreground/20 italic">Please complete steps 1, 2, and 3 first.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-12 animate-in fade-in zoom-in-95 duration-1000">
@@ -405,7 +413,7 @@ const SolutionsHub: React.FC = () => {
                             <div className="space-y-2">
                                 <div className="flex justify-between text-xs font-bold text-foreground/60">
                                     <span>Target Date</span>
-                                    <span>{new Date(Date.now() + localMonths * 30 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}</span>
+                                    <span>{targetDateString}</span>
                                 </div>
                                 <div className="flex justify-between text-xs font-bold text-foreground/60">
                                     <span>Profile</span>

@@ -90,7 +90,7 @@ const CashFlowHub: React.FC = () => {
         }
     };
 
-    const handleUpdateTransaction = (id: string, field: keyof Transaction, value: any) => {
+    const handleUpdateTransaction = (id: string, field: keyof Transaction, value: string | number) => {
         let finalValue = value;
         if (field === 'amount') {
             finalValue = Math.abs(Number(value));
@@ -105,9 +105,9 @@ const CashFlowHub: React.FC = () => {
                 ? await analyzeCashFlow(transactions)
                 : await analyzeWithAI(aiInput);
 
-            setCashFlow(result as any);
-            if (mode === 'ai' && (result as any).extractedTransactions) {
-                setTransactions((result as any).extractedTransactions);
+            setCashFlow(result);
+            if (mode === 'ai' && result.extractedTransactions) {
+                setTransactions(result.extractedTransactions);
             }
         } catch (error) {
             console.error(error);
@@ -118,9 +118,9 @@ const CashFlowHub: React.FC = () => {
 
     useEffect(() => {
         if (state.cashFlow && mode === 'manual') {
-            analyzeCashFlow(transactions).then(res => setCashFlow(res as any));
+            analyzeCashFlow(transactions).then(res => setCashFlow(res));
         }
-    }, [transactions]);
+    }, [transactions, mode, setCashFlow, state.cashFlow]);
 
     const COLORS = ['#0ea5e9', '#6366f1', '#10b981'];
     const pieData = state.cashFlow ? [
@@ -374,7 +374,7 @@ const CashFlowHub: React.FC = () => {
                                     Budget Audit
                                 </h4>
                                 <div className="space-y-6">
-                                    {state.cashFlow.budgetCompliance && Object.entries(state.cashFlow.budgetCompliance).map(([key, data]: any) => (
+                                    {state.cashFlow.budgetCompliance && Object.entries(state.cashFlow.budgetCompliance).map(([key, data]) => (
                                         <div key={key} className="space-y-2">
                                             <div className="flex justify-between text-[11px] font-bold">
                                                 <span className="text-foreground/40 capitalize">{key}</span>

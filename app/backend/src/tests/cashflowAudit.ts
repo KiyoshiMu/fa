@@ -27,9 +27,9 @@ const runAudit = () => {
   console.log(`Outflow: $${analysis.totalOutflow}`);
   console.log(`Net: $${analysis.netCashFlow}`);
   console.log("\n--- Budget Breakdown ---");
-  console.log(`Fixed (Needs): ${analysis.percentages.fixedPct}%`);
-  console.log(`Variable (Wants): ${analysis.percentages.variablePct}%`);
-  console.log(`Savings: ${analysis.percentages.savingsPct}%`);
+  console.log(`Fixed (Needs): ${analysis.budgetCompliance.needs.actualPct}%`);
+  console.log(`Variable (Wants): ${analysis.budgetCompliance.wants.actualPct}%`);
+  console.log(`Savings: ${analysis.budgetCompliance.savings.actualPct}%`);
   console.log("\n--- Recommendation ---");
   console.log(analysis.recommendation);
 
