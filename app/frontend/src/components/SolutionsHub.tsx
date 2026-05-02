@@ -56,15 +56,6 @@ const SolutionsHub: React.FC = () => {
         pmtWithInvest: 0, pmtCashOnly: 0, savingsGain: 0, gap: 0, isShort: false, 
         recommendedETF: { ticker: 'VBAL', name: 'Balanced', desc: '60/40' } 
     };
-    
-    const targetAmount = state.goal.targetAmount;
-    const rate = state.profile.rate;
-    const surplus = state.cashFlow.netCashFlow;
-
-    const chartData = [
-        { name: 'Cash Only', amount: Math.round(pmtCashOnly) },
-        { name: 'Invested', amount: Math.round(pmtWithInvest) },
-    ];
 
     // Contribution Allocation Logic (Plan based)
     const allocations = useMemo(() => {
@@ -136,6 +127,15 @@ const SolutionsHub: React.FC = () => {
             </div>
         );
     }
+
+    const targetAmount = state.goal.targetAmount;
+    const rate = state.profile.rate;
+    const surplus = state.cashFlow.netCashFlow;
+
+    const chartData = [
+        { name: 'Cash Only', amount: Math.round(pmtCashOnly) },
+        { name: 'Invested', amount: Math.round(pmtWithInvest) },
+    ];
 
     return (
         <div className="space-y-12 animate-in fade-in zoom-in-95 duration-1000">
