@@ -50,11 +50,10 @@ const CategorySelector: React.FC<{
                                 onChange(cat.id);
                                 setIsOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${
-                                value === cat.id 
-                                    ? 'bg-primary-600 text-white' 
+                            className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors ${value === cat.id
+                                    ? 'bg-primary-600 text-white'
                                     : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
-                            }`}
+                                }`}
                         >
                             {cat.label}
                         </button>
@@ -102,10 +101,10 @@ const CashFlowHub: React.FC = () => {
     const handleAnalyze = async () => {
         setLoading(true);
         try {
-            const result = mode === 'manual' 
+            const result = mode === 'manual'
                 ? await analyzeCashFlow(transactions)
                 : await analyzeWithAI(aiInput);
-            
+
             setCashFlow(result as any);
             if (mode === 'ai' && (result as any).extractedTransactions) {
                 setTransactions((result as any).extractedTransactions);
@@ -143,19 +142,17 @@ const CashFlowHub: React.FC = () => {
                 <div className="flex bg-secondary p-1 rounded-2xl border border-border">
                     <button
                         onClick={() => setMode('manual')}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-                            mode === 'manual' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-foreground/40 hover:text-foreground/60'
-                        }`}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${mode === 'manual' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-foreground/40 hover:text-foreground/60'
+                            }`}
                     >
                         <List className="w-4 h-4" /> Manual
                     </button>
                     <button
                         onClick={() => setMode('ai')}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-                            mode === 'ai' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-foreground/40 hover:text-foreground/60'
-                        }`}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${mode === 'ai' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-foreground/40 hover:text-foreground/60'
+                            }`}
                     >
-                        <Brain className="w-4 h-4" /> AI Extract
+                        <Brain className="w-4 h-4" /> Manual Upload
                     </button>
                 </div>
             </div>
@@ -205,7 +202,7 @@ const CashFlowHub: React.FC = () => {
                                                     />
                                                 </td>
                                                 <td className="px-6 py-3">
-                                                    <CategorySelector 
+                                                    <CategorySelector
                                                         value={tx.category}
                                                         onChange={(val) => handleUpdateTransaction(tx.id, 'category', val)}
                                                     />
@@ -322,9 +319,9 @@ const CashFlowHub: React.FC = () => {
                                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                     ))}
                                                 </Pie>
-                                                <Tooltip 
-                                                    contentStyle={{ 
-                                                        backgroundColor: '#0f172a', 
+                                                <Tooltip
+                                                    contentStyle={{
+                                                        backgroundColor: '#0f172a',
                                                         border: '1px solid rgba(255,255,255,0.1)',
                                                         borderRadius: '12px'
                                                     }}
@@ -386,8 +383,8 @@ const CashFlowHub: React.FC = () => {
                                                 </span>
                                             </div>
                                             <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-                                                <div 
-                                                    className={`h-full transition-all duration-1000 ${data.status === 'Over Budget' ? 'bg-red-500' : 'bg-green-500'}`} 
+                                                <div
+                                                    className={`h-full transition-all duration-1000 ${data.status === 'Over Budget' ? 'bg-red-500' : 'bg-green-500'}`}
                                                     style={{ width: `${Math.min(data.actualPct || 0, 100)}%` }}
                                                 />
                                             </div>
@@ -403,7 +400,7 @@ const CashFlowHub: React.FC = () => {
                                         {state.cashFlow.netCashFlow >= 0 ? 'Healthy Cash Flow' : 'Deficit Detected'}
                                     </div>
                                     <div className="text-[11px] opacity-60 leading-relaxed font-medium">
-                                        {state.cashFlow.netCashFlow >= 0 
+                                        {state.cashFlow.netCashFlow >= 0
                                             ? `Excellent wealth baseline. You have a surplus of $${state.cashFlow.netCashFlow.toLocaleString()} to commit to your saving goals.`
                                             : "WARNING: Your outflows exceed your income. Per project standards, we recommend auditing your 'Wants' category to reach a positive balance before finalizing goals."}
                                     </div>
