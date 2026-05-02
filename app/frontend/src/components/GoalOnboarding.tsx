@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Home, Plane, Sparkles, ArrowRight, DollarSign, Calendar, ShieldCheck, Info, Building2, Layout, Landmark, Construction } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 import type { GoalType, PropertyType, PayFrequency } from '../FinancialContext';
-import { PROPERTY_MEDIANS, calculateCMHC } from '../lib/mortgageUtils';
+import { PROPERTY_MEDIANS, calculateCMHC, calculateMinDP } from '../lib/mortgageUtils';
 
 const GoalOnboarding: React.FC = () => {
     const { state, setGoal, setStep, setPayFrequency } = useFinancial();
@@ -28,12 +28,8 @@ const GoalOnboarding: React.FC = () => {
             let dpAmount = 0;
             
             if (dpPct === 0.05) {
-                // Minimum DP calculation for > 500k
-                if (median <= 500000) {
-                    dpAmount = median * 0.05;
-                } else {
-                    dpAmount = (500000 * 0.05) + ((median - 500000) * 0.10);
-                }
+                // Tiered Min DP calculation
+                dpAmount = calculateMinDP(median);
             } else if (dpPct === 0.20) {
                 dpAmount = median * 0.20;
             } else if (dpPct === 0.35) {
@@ -148,31 +144,49 @@ const GoalOnboarding: React.FC = () => {
                                 <div className="space-y-6">
                                     <label className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
                                         2. Down Payment Percentage
-                                        <div className="group relative">
-                                            <Info className="w-4 h-4 cursor-help" />
-                                            <div className="absolute bottom-full right-0 mb-2 w-64 p-4 rounded-2xl bg-foreground text-background text-[10px] font-bold leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-2xl z-50">
-                                                CMHC insurance is required if down payment is less than 20%. 
-                                                The premium is added to your total target amount.
-                                            </div>
-                                        </div>
                                     </label>
                                     <div className="flex flex-wrap gap-3">
                                         {[
-                                            { label: '5% (CMHC)', val: 0.05 },
-                                            { label: '20% (Rec)', val: 0.20 },
-                                            { label: '35%+', val: 0.35 }
+                                            { 
+                                                label: '5% (CMHC Insured)', 
+                                                val: 0.05,
+                                                tooltip: () => {
+                                                    const median = PROPERTY_MEDIANS[propertyType];
+                                                    const minDp = calculateMinDP(median);
+                                                    const { insuranceAmount, premium } = calculateCMHC(median, minDp);
+                                                    const pct = ((minDp / median) * 100).toFixed(1);
+                                                    return (
+                                                        <div className="space-y-2">
+                                                            <div className="text-primary-500 font-black">Min DP: ${minDp.toLocaleString()} ({pct}%)</div>
+                                                            <div className="text-foreground/60">Insurance Premium: ${(insuranceAmount).toLocaleString()} est.</div>
+                                                            <div className="text-[8px] italic opacity-50">Calculation: ${median <= 500000 ? `${median} * 5%` : `(500k * 5%) + (${(median-500000)/1000}k * 10%)`} + {premium*100}% premium</div>
+                                                        </div>
+                                                    );
+                                                }
+                                            },
+                                            { label: '20% (Recommended)', val: 0.20 },
+                                            { label: '35% or more', val: 0.35 }
                                         ].map((opt) => (
-                                            <button
-                                                key={opt.label}
-                                                onClick={() => setDpPct(opt.val)}
-                                                className={`px-6 py-3 rounded-full border-2 transition-all font-black text-xs ${
-                                                    dpPct === opt.val 
-                                                        ? 'bg-foreground text-background border-foreground shadow-lg' 
-                                                        : 'bg-background/40 border-border/40 text-foreground/40'
-                                                }`}
-                                            >
-                                                {opt.label}
-                                            </button>
+                                            <div key={opt.label} className="relative group/opt">
+                                                <button
+                                                    onClick={() => setDpPct(opt.val)}
+                                                    className={`px-6 py-3 rounded-full border-2 transition-all font-black text-xs flex items-center gap-2 ${
+                                                        dpPct === opt.val 
+                                                            ? 'bg-foreground text-background border-foreground shadow-lg' 
+                                                            : 'bg-background/40 border-border/40 text-foreground/40 hover:border-foreground/20'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                    {opt.tooltip && (
+                                                        <Info className={`w-3.5 h-3.5 ${dpPct === opt.val ? 'text-primary-400' : 'text-foreground/20'}`} />
+                                                    )}
+                                                </button>
+                                                {opt.tooltip && (
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-4 rounded-2xl bg-secondary border border-border shadow-2xl opacity-0 group-hover/opt:opacity-100 transition-opacity pointer-events-none z-50">
+                                                        {opt.tooltip()}
+                                                    </div>
+                                                )}
+                                            </div>
                                         ))}
                                     </div>
                                     
@@ -183,7 +197,7 @@ const GoalOnboarding: React.FC = () => {
                                                 type="number"
                                                 value={customDP}
                                                 onChange={(e) => setCustomDP(Number(e.target.value))}
-                                                placeholder="Custom amount"
+                                                placeholder="Enter custom amount"
                                                 className="w-full bg-background/50 border-2 border-border/40 focus:border-primary-500 rounded-2xl p-4 pl-12 text-lg font-black text-foreground focus:outline-none transition-all"
                                             />
                                         </div>
@@ -198,7 +212,7 @@ const GoalOnboarding: React.FC = () => {
                                             <div className="text-right">
                                                 <div className="text-[10px] font-black uppercase tracking-widest text-foreground/30">DP + Insurance</div>
                                                 <div className="text-xs font-bold text-foreground/60 italic">
-                                                    {dpPct < 0.2 ? `Incl. approx $${(targetAmount - (PROPERTY_MEDIANS[propertyType] * dpPct)).toLocaleString()} insurance` : 'No CMHC Insurance'}
+                                                    {dpPct < 0.2 ? `Incl. approx $${(targetAmount - (dpPct === 0.05 ? calculateMinDP(PROPERTY_MEDIANS[propertyType]) : PROPERTY_MEDIANS[propertyType] * dpPct)).toLocaleString()} insurance` : 'No CMHC Insurance'}
                                                 </div>
                                             </div>
                                         </div>

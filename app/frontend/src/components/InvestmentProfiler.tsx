@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { calculateInvestmentProfile } from '../lib/api';
 import type { QuestionnaireAnswers } from '../lib/api';
-import { Loader2, ChevronRight, CheckCircle2, ChevronLeft, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Loader2, ChevronRight, CheckCircle2, ChevronLeft, ArrowRight, ShieldCheck, Compass, Target, Zap, Anchor, Activity } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 import { mapMonthsToTimeHorizon, mapIncomeToPoints, mapStabilityToPoints, mapConcentrationToPoints } from '../lib/mortgageUtils';
 
@@ -109,11 +109,11 @@ const QUESTIONS = [
 // Radar Chart Component
 const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
     const dimensions = [
-        { name: 'Resilience', key: 'viability' },
-        { name: 'Growth', key: 'offensiveness' },
-        { name: 'Decision', key: 'decision' },
-        { name: 'Horizon', key: 'endurance' },
-        { name: 'Context', key: 'adaptability' },
+        { name: '生存力', key: 'viability', icon: Anchor },
+        { name: '进攻力', key: 'offensiveness', icon: Target },
+        { name: '决策力', key: 'decision', icon: Compass },
+        { name: '耐力', key: 'endurance', icon: Activity },
+        { name: '适应力', key: 'adaptability', icon: Zap },
     ];
 
     const size = 300;
@@ -181,8 +181,8 @@ const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
                 })}
             </svg>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                <div className="w-16 h-16 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center backdrop-blur-sm">
-                    <ShieldCheck className="w-8 h-8 text-primary-500" />
+                <div className="w-16 h-16 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center backdrop-blur-md shadow-2xl">
+                    <Compass className="w-8 h-8 text-primary-500 animate-pulse" />
                 </div>
             </div>
         </div>

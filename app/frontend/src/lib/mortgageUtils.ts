@@ -11,6 +11,7 @@ export const CMHC_TABLE = [
   { maxLtv: 0.85, premium: 0.028 },
   { maxLtv: 0.90, premium: 0.031 },
   { maxLtv: 0.95, premium: 0.040 },
+  { maxLtv: 1.00, premium: 0.045 }, // For non-traditional or high LTV
 ];
 
 /**
@@ -18,9 +19,9 @@ export const CMHC_TABLE = [
  * Source: CREA/TREB Median Price Reference
  */
 export const PROPERTY_MEDIANS: Record<PropertyType, number> = {
-  'condo': 540000,
-  'townhouse': 820000,
-  'semi-detached': 1100000,
+  'condo': 600000,
+  'townhouse': 850000,
+  'semi-detached': 1150000,
   'single family': 1450000,
 };
 
@@ -40,14 +41,28 @@ export function calculateCMHC(purchasePrice: number, downPayment: number) {
   }
 
   const mortgageAmount = purchasePrice - downPayment;
+  // Match based on LTV. If > 95% or non-traditional, use 4.5%
   const match = CMHC_TABLE.find(row => ltv <= row.maxLtv);
-  const premium = match ? match.premium : 0.045; // Default to max premium if above 95% (though usually not allowed)
+  const premium = match ? match.premium : 0.045;
 
   return {
     insuranceAmount: mortgageAmount * premium,
     ltv,
     premium
   };
+}
+
+/**
+ * Calculate Minimum Down Payment based on Purchase Price
+ * Formula: 5% on first $500k + 10% on remainder (up to $1.5M per plan)
+ */
+export function calculateMinDP(purchasePrice: number): number {
+  if (purchasePrice <= 500000) {
+    return purchasePrice * 0.05;
+  } else {
+    // Plan: for 500k to 1.5M, 5%*500k + 10%*remaining
+    return (500000 * 0.05) + ((purchasePrice - 500000) * 0.10);
+  }
 }
 
 /**
@@ -64,12 +79,24 @@ export function mapMonthsToTimeHorizon(months: number): string {
 /**
  * Map annual income to Risk Profiler Q4 points
  */
-export function mapIncomeToPoints(annualIncome: number): number {
-  if (annualIncome < 20000) return 0;
-  if (annualIncome < 50000) return 2;
-  if (annualIncome < 100000) return 4;
-  if (annualIncome < 150000) return 5;
-  if (annualIncome < 200000) return 7;
+/**
+ * Map net annual income (or gross estimate) to Risk Profiler Q4 points
+ * Uses 2024 tax bracket estimation logic
+ */
+export function mapIncomeToPoints(netAnnualIncome: number): number {
+  // Estimate Gross from Net (rough inverse of 2024 combined Fed+ON tax)
+  let grossEstimate = netAnnualIncome;
+  if (netAnnualIncome < 45000) grossEstimate = netAnnualIncome / 0.80; // ~20% tax
+  else if (netAnnualIncome < 80000) grossEstimate = netAnnualIncome / 0.75; // ~25% tax
+  else if (netAnnualIncome < 120000) grossEstimate = netAnnualIncome / 0.70; // ~30% tax
+  else if (netAnnualIncome < 180000) grossEstimate = netAnnualIncome / 0.65; // ~35% tax
+  else grossEstimate = netAnnualIncome / 0.60; // ~40%+ tax
+
+  if (grossEstimate < 20000) return 0;
+  if (grossEstimate < 50000) return 2;
+  if (grossEstimate < 100000) return 4;
+  if (grossEstimate < 150000) return 5;
+  if (grossEstimate < 200000) return 7;
   return 10;
 }
 

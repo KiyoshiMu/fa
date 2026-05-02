@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useFinancial } from '../FinancialContext';
 import { analyzeAdvisory } from '../lib/api';
 import type { AdvisoryResponse } from '../lib/api';
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, LineChart, Line, YAxis } from 'recharts';
 import { Rocket, ShieldCheck, AlertCircle, ArrowRight, ExternalLink, TrendingUp, Wallet, Lightbulb, Loader2, Clock } from 'lucide-react';
 
 const SolutionsHub: React.FC = () => {
@@ -76,17 +76,24 @@ const SolutionsHub: React.FC = () => {
         const monthly = pmtWithInvest;
         const annualIncome = (state.cashFlow?.totalInflow || 5000) * 12;
         
-        // Limits
-        const fhsaMonthlyLimit = 4000 / 12; // $333
+        // Limits from Plan
+        const fhsaAnnualLimit = 4000;
+        const fhsaLifetimeLimit = 50000;
+        const fhsaMonthlyLimit = fhsaAnnualLimit / 12; // ~$333
+        
         const rrspMonthlyLimit = (annualIncome * 0.18) / 12;
+        const rrspHBPMax = 35000;
         
         const calcFreq = (total: number, freq: 'monthly' | 'semi-monthly' | 'bi-weekly') => {
             const divisors = { 'monthly': 1, 'semi-monthly': 2, 'bi-weekly': 2.166 }; // 26/12
             const currentTotal = total / divisors[freq];
             
+            // FHSA First
             let fhsa = Math.min(currentTotal, (fhsaMonthlyLimit / divisors[freq]));
             let remaining = currentTotal - fhsa;
             
+            // RRSP Second (considering HBP limit)
+            // Note: HBP is a withdrawal limit, but here we assume we contribute towards it
             let rrsp = Math.min(remaining, (rrspMonthlyLimit / divisors[freq]));
             let tfsa = Math.max(0, remaining - rrsp);
             
@@ -98,7 +105,25 @@ const SolutionsHub: React.FC = () => {
             semiMonthly: calcFreq(monthly, 'semi-monthly'),
             biWeekly: calcFreq(monthly, 'bi-weekly')
         };
-    }, [pmtWithInvest, state.cashFlow]);
+    }, [pmtWithInvest, state.cashFlow, state.goal]);
+
+    // FHSA 5-Year Growth Data
+    const fhsaGrowthData = useMemo(() => {
+        const monthlyContrib = Math.min(pmtWithInvest, 4000/12);
+        const data = [];
+        let balance = 0;
+        const monthlyRate = (state.profile?.rate || 0.05) / 12;
+
+        for (let m = 0; m <= 60; m++) {
+            if (m > 0) {
+                balance = (balance + monthlyContrib) * (1 + monthlyRate);
+            }
+            if (m % 12 === 0) {
+                data.push({ year: `Year ${m/12}`, balance: Math.round(balance) });
+            }
+        }
+        return data;
+    }, [pmtWithInvest, state.profile]);
 
     const currentAlloc = state.payFrequency === 'monthly' ? allocations.monthly : 
                    state.payFrequency === 'semi-monthly' ? allocations.semiMonthly : 
@@ -216,27 +241,67 @@ const SolutionsHub: React.FC = () => {
                             { label: 'Monthly', val: allocations.monthly, color: 'text-emerald-400' }
                         ].map((item) => (
                             <div key={item.label} className={`p-8 rounded-[2rem] glass-card border border-border/40 relative overflow-hidden ${state.payFrequency.toLowerCase().includes(item.label.toLowerCase().split('-')[0]) ? 'ring-2 ring-primary-500 bg-primary-500/5' : ''}`}>
+                                <div className="absolute top-4 right-6 text-[8px] font-black uppercase text-primary-500/20 italic tracking-widest">Pay Yourself First</div>
                                 <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-6">{item.label} Result</h5>
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-foreground/60 italic">FHSA</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-foreground/60 italic">FHSA</span>
+                                            <span className="text-[8px] text-foreground/20 uppercase font-black tracking-widest">Tax-Free Home Savings</span>
+                                        </div>
                                         <span className="text-lg font-black text-foreground">${Math.round(item.val.fhsa).toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-foreground/60 italic">RRSP (HBP)</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-foreground/60 italic">RRSP (HBP)</span>
+                                            <span className="text-[8px] text-foreground/20 uppercase font-black tracking-widest">Home Buyers' Plan</span>
+                                        </div>
                                         <span className="text-lg font-black text-foreground">${Math.round(item.val.rrsp).toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-foreground/60 italic">TFSA</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-foreground/60 italic">TFSA</span>
+                                            <span className="text-[8px] text-foreground/20 uppercase font-black tracking-widest">Excess Savings</span>
+                                        </div>
                                         <span className="text-lg font-black text-foreground">${Math.round(item.val.tfsa).toLocaleString()}</span>
                                     </div>
                                     <div className="pt-4 border-t border-border/40 flex justify-between items-center">
-                                        <span className="text-[10px] font-black uppercase text-primary-500">Total</span>
+                                        <span className="text-[10px] font-black uppercase text-primary-500">Total Contribution</span>
                                         <span className={`text-xl font-black ${item.color}`}>${Math.round(item.val.fhsa + item.val.rrsp + item.val.tfsa).toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
                         ))}
+                    </div>
+
+                    {/* FHSA 5-Year Growth Graph */}
+                    <div className="glass-card p-10 border-border/40">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h4 className="text-sm font-black text-foreground uppercase tracking-widest flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4 text-primary-500" /> FHSA Maximization Strategy
+                                </h4>
+                                <p className="text-[10px] text-foreground/30 font-medium italic">Illustrating total savings over the 5-year maximum contribution period</p>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-2xl font-black text-primary-500">${fhsaGrowthData[5].balance.toLocaleString()}</div>
+                                <div className="text-[8px] font-black uppercase text-foreground/20 tracking-tighter">Est. 5-Year Total</div>
+                            </div>
+                        </div>
+                        <div className="h-48 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={fhsaGrowthData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: 'black' }} />
+                                    <YAxis hide />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px' }}
+                                        labelStyle={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 'black' }}
+                                    />
+                                    <Line type="monotone" dataKey="balance" stroke="#0ea5e9" strokeWidth={3} dot={{ fill: '#0ea5e9', r: 4 }} activeDot={{ r: 6, fill: '#fff' }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
