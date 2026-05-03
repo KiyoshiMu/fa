@@ -3,13 +3,16 @@ import cors from 'cors';
 import { calculateProfile, ScoringPolicy, QuestionnaireAnswers, getReturnRate, InvestmentProfile } from './services/investmentService.js';
 import { AdvisoryService } from './services/AdvisoryService.js';
 import { calculatePMT } from './utils/financeUtils.js';
-import { analyzeTransactions, analyzeWithAI, Transaction } from './services/cashflowService.js';
+import { analyzeTransactions, analyzeWithAI, analyzeWithFile, Transaction } from './services/cashflowService.js';
+import multer from 'multer';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * Health Check
@@ -60,16 +63,10 @@ app.post('/api/invest/generate-plan', (req: Request, res: Response) => {
 
     const rate = getReturnRate(profile);
     const periodicRate = rate / 12;
-    // Proper financial formula for PMT when there's an initial balance (PV):
-    // FV = PV * (1+r)^n + PMT * [((1+r)^n - 1) / r]
-    // Re-arranging for PMT:
-    // PMT = (FV - PV * (1+r)^n) * r / ((1+r)^n - 1)
     
     const fvOfCurrentSavings = currentSavings * Math.pow(1 + periodicRate, months);
     const amountToSave = goalAmount - fvOfCurrentSavings;
     
-    // We already have calculatePMT which is (FV * r) / ((1+r)^n - 1)
-    // So we just pass the 'amountToSave' as the FV into it.
     const pmtWithInvestment = calculatePMT(amountToSave, periodicRate, months);
     const pmtWithoutInvestment = calculatePMT(goalAmount - currentSavings, 0, months);
 
@@ -93,7 +90,7 @@ app.post('/api/invest/generate-plan', (req: Request, res: Response) => {
 });
 
 /**
- * Endpoint: Analyze Cash Flow
+ * Endpoint: Analyze Cash Flow (Manual Data)
  */
 app.post('/api/cashflow/analyze', (req: Request, res: Response) => {
   try {
@@ -111,7 +108,7 @@ app.post('/api/cashflow/analyze', (req: Request, res: Response) => {
 });
 
 /**
- * Endpoint: Analyze Cash Flow with Gemini AI
+ * Endpoint: Analyze Cash Flow with Gemini AI (Raw Text)
  */
 app.post('/api/cashflow/analyze-ai', async (req: Request, res: Response) => {
   try {
@@ -127,6 +124,29 @@ app.post('/api/cashflow/analyze-ai', async (req: Request, res: Response) => {
     res.json(analysis);
   } catch (error: any) {
     console.error("Analysis Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Endpoint: Analyze Cash Flow from File Upload (PDF, CSV, Image)
+ */
+app.post('/api/cashflow/analyze-file', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const transactions = await analyzeWithFile(
+      req.file.buffer, 
+      req.file.originalname, 
+      req.file.mimetype
+    );
+    const analysis = analyzeTransactions(transactions);
+    
+    res.json(analysis);
+  } catch (error: any) {
+    console.error("File Analysis Error:", error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -38,14 +38,24 @@ const getGenAI = () => {
 
 /**
  * Helper to call generate content with JSON response
+ * Supports optional multimodal parts (PDF/Image)
  */
-export const generateCategorizedJSON = async (prompt: string) => {
+export const generateCategorizedJSON = async (prompt: string, filePart?: { data: string, mimeType: string }) => {
   const genai = getGenAI();
   
-  // In the latest SDK, we use gemini-flash-lite-latest
+  const parts: any[] = [{ text: prompt }];
+  if (filePart) {
+    parts.push({
+      inlineData: {
+        data: filePart.data,
+        mimeType: filePart.mimeType
+      }
+    });
+  }
+
   const response = await genai.models.generateContent({
     model: 'gemini-flash-lite-latest',
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts }],
     config: {
       responseMimeType: 'application/json',
       responseSchema: transactionSchema

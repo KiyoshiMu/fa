@@ -127,6 +127,17 @@ export async function analyzeWithAI(rawText: string) {
   return res.json() as Promise<AnalysisResponse>;
 }
 
+export async function analyzeWithFile(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE}/cashflow/analyze-file`, {
+    method: 'POST',
+    body: formData,
+  });
+  return res.json() as Promise<AnalysisResponse>;
+}
+
 export interface AdvisoryRequest {
     surplus: number;
     targetAmount: number;

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { analyzeCashFlow, analyzeWithAI } from '../lib/api';
+import { analyzeCashFlow, analyzeWithAI, analyzeWithFile } from '../lib/api';
 import type { Transaction } from '../lib/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Loader2, Plus, Brain, List, CheckCircle2, AlertCircle, PieChart as PieIcon, DollarSign, ArrowRight, ChevronDown, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Brain, List, CheckCircle2, AlertCircle, PieChart as PieIcon, DollarSign, ArrowRight, ChevronDown, Trash2, Upload, FileText, X as CloseIcon } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
+import { useDropzone } from 'react-dropzone';
 
 const CategorySelector: React.FC<{
     value: Transaction['category'];
@@ -71,7 +72,25 @@ const CashFlowHub: React.FC = () => {
         { id: '1', date: '2026-04-18', description: 'Salary', amount: 5000, category: 'Income' }
     ]);
     const [aiInput, setAiInput] = useState('');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
+
+    const onDrop = (acceptedFiles: File[]) => {
+        if (acceptedFiles.length > 0) {
+            setSelectedFile(acceptedFiles[0]);
+            setAiInput(''); // Clear text input if file is selected
+        }
+    };
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        accept: {
+            'application/pdf': ['.pdf'],
+            'text/csv': ['.csv'],
+            'image/*': ['.png', '.jpg', '.jpeg']
+        },
+        multiple: false
+    });
 
     const handleAddTransaction = () => {
         const newTx: Transaction = {
@@ -101,16 +120,22 @@ const CashFlowHub: React.FC = () => {
     const handleAnalyze = async () => {
         setLoading(true);
         try {
-            const result = mode === 'manual'
-                ? await analyzeCashFlow(transactions)
-                : await analyzeWithAI(aiInput);
+            let result;
+            if (mode === 'manual') {
+                result = await analyzeCashFlow(transactions);
+            } else if (selectedFile) {
+                result = await analyzeWithFile(selectedFile);
+            } else {
+                result = await analyzeWithAI(aiInput);
+            }
 
             setCashFlow(result);
-            if (mode === 'ai' && result.extractedTransactions) {
+            if (result.extractedTransactions) {
                 setTransactions(result.extractedTransactions);
             }
         } catch (error) {
             console.error(error);
+            alert("Analysis failed. Please check your file/input and try again.");
         } finally {
             setLoading(false);
         }
@@ -236,32 +261,91 @@ const CashFlowHub: React.FC = () => {
                             </div>
                         </div>
                     ) : (
-                        <div className="glass-card p-6 border-primary-500/20 bg-primary-500/5">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 bg-primary-500/5 rounded-2xl text-primary-500 border border-primary-500/10">
-                                    <Brain className="w-6 h-6" />
+                        <div className="space-y-6">
+                            <div className="glass-card p-6 border-primary-500/20 bg-primary-500/5">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-3 bg-primary-500/5 rounded-2xl text-primary-500 border border-primary-500/10">
+                                        <Brain className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-foreground">AI Statement Processor</h3>
+                                        <p className="text-xs text-foreground/40 italic">Upload a file (PDF, CSV, Image) or paste text below.</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-foreground">AI Statement Processor</h3>
-                                    <p className="text-xs text-foreground/40 italic">Paste raw text from your bank or CC statement below.</p>
+
+                                {/* File Upload Area */}
+                                <div 
+                                    {...getRootProps()} 
+                                    className={`mb-6 border-2 border-dashed rounded-2xl p-8 transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
+                                        isDragActive ? 'border-primary-500 bg-primary-500/10' : 'border-border/40 hover:border-primary-500/50 hover:bg-primary-500/5'
+                                    }`}
+                                >
+                                    <input {...getInputProps()} />
+                                    {selectedFile ? (
+                                        <div className="flex flex-col items-center gap-3 animate-in zoom-in-95 duration-300">
+                                            <div className="p-4 bg-primary-500/10 rounded-2xl text-primary-500 relative">
+                                                <FileText className="w-8 h-8" />
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedFile(null);
+                                                    }}
+                                                    className="absolute -top-2 -right-2 p-1 bg-background border border-border rounded-full text-foreground/40 hover:text-red-500 transition-colors"
+                                                >
+                                                    <CloseIcon className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-foreground">{selectedFile.name}</div>
+                                                <div className="text-[10px] text-foreground/40 uppercase font-black">Ready for analysis</div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="p-4 bg-secondary rounded-2xl text-foreground/20 group-hover:text-primary-500/50 transition-colors mb-4">
+                                                <Upload className="w-8 h-8" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-foreground/60 group-hover:text-foreground transition-colors">
+                                                    Drop your statement here or <span className="text-primary-500">browse</span>
+                                                </p>
+                                                <p className="text-[10px] text-foreground/30 uppercase font-black tracking-widest">
+                                                    Supports PDF, CSV, PNG, JPG
+                                                </p>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
+
+                                <div className="relative mb-4">
+                                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                        <div className="w-full border-t border-border/20"></div>
+                                    </div>
+                                    <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.3em]">
+                                        <span className="bg-[#0f172a] px-4 text-foreground/20">OR PASTE TEXT</span>
+                                    </div>
+                                </div>
+
+                                <textarea
+                                    className="w-full h-48 bg-secondary/50 border border-border rounded-2xl p-6 text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 placeholder:text-foreground/30"
+                                    placeholder="Example:&#10;APR 01 MAIN ST RENT -1800.00&#10;APR 05 STARBUCKS -6.50..."
+                                    value={aiInput}
+                                    onChange={(e) => {
+                                        setAiInput(e.target.value);
+                                        if (e.target.value) setSelectedFile(null); // Clear file if text is entered
+                                    }}
+                                />
+                                <p className="text-[10px] text-foreground/30 italic mt-4">
+                                    * Your data is processed securely via Google Gemini. No personal info is stored.
+                                </p>
                             </div>
-                            <textarea
-                                className="w-full h-64 bg-secondary/50 border border-border rounded-2xl p-6 text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 placeholder:text-foreground/30 mb-4"
-                                placeholder="Example:&#10;APR 01 MAIN ST RENT -1800.00&#10;APR 05 STARBUCKS -6.50&#10;APR 15 EMPLOYER PAYROLL 4500.00..."
-                                value={aiInput}
-                                onChange={(e) => setAiInput(e.target.value)}
-                            />
-                            <p className="text-[10px] text-foreground/30 italic mb-6">
-                                * Your data is processed securely via Google Gemini. No personal info is stored.
-                            </p>
                         </div>
                     )}
 
                     <div className="flex flex-col sm:flex-row gap-4">
                         <button
                             onClick={handleAnalyze}
-                            disabled={loading}
+                            disabled={loading || (mode === 'ai' && !aiInput && !selectedFile)}
                             className="flex-1 py-5 bg-gradient-to-r from-primary-600 to-blue-500 hover:from-primary-500 hover:to-blue-400 text-white font-black uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 shadow-2xl shadow-primary-500/30 flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {loading && <Loader2 className="w-6 h-6 animate-spin" />}

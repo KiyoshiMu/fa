@@ -32,6 +32,8 @@ export interface CashflowAnalysis {
 
 import crypto from 'crypto';
 
+import Papa from 'papaparse';
+
 /**
  * Categorize raw transaction strings using Gemini AI
  */
@@ -57,27 +59,84 @@ export const analyzeWithAI = async (input: string): Promise<Transaction[]> => {
   `;
 
   const responseText = await generateCategorizedJSON(prompt);
-  
+  return parseGeminiResponse(responseText);
+};
+
+/**
+ * Categorize transactions from a file (PDF or CSV)
+ */
+export const analyzeWithFile = async (fileBuffer: Buffer, fileName: string, mimeType: string): Promise<Transaction[]> => {
+  let inputPrompt = "";
+  let filePart: { data: string, mimeType: string } | undefined = undefined;
+
+  if (mimeType === 'text/csv' || fileName.endsWith('.csv')) {
+    const csvContent = fileBuffer.toString('utf-8');
+    const parsed = Papa.parse(csvContent, { header: true });
+    inputPrompt = `
+      Analyze the following CSV data from a bank statement.
+      
+      CSV Content:
+      ${JSON.stringify(parsed.data)}
+    `;
+  } else if (mimeType === 'application/pdf') {
+    inputPrompt = `
+      Analyze the attached PDF bank statement.
+      Extract every transaction line item. Ignore summaries or noise.
+    `;
+    filePart = {
+      data: fileBuffer.toString('base64'),
+      mimeType: 'application/pdf'
+    };
+  } else if (mimeType.startsWith('image/')) {
+    inputPrompt = `
+      Analyze the attached bank statement image.
+      Extract every transaction line item. Ignore summaries or noise.
+    `;
+    filePart = {
+      data: fileBuffer.toString('base64'),
+      mimeType: mimeType
+    };
+  } else {
+    throw new Error(`Unsupported file type: ${mimeType}`);
+  }
+
+  const prompt = `
+    ${inputPrompt}
+    
+    Context year is 2026.
+    
+    CRITICAL COLUMN LOGIC:
+    - If a number is in a "Deposits" or "Income" column, category MUST be 'Income'.
+    - Categorize into: 'Fixed' (Needs), 'Variable' (Wants), 'Savings', 'Income', or 'Unknown'.
+    
+    CRITICAL: Always return dates in YYYY-MM-DD format.
+  `;
+
+  const responseText = await generateCategorizedJSON(prompt, filePart);
+  return parseGeminiResponse(responseText);
+};
+
+/**
+ * Shared helper to parse and normalize Gemini JSON response
+ */
+const parseGeminiResponse = (responseText: string): Transaction[] => {
   try {
     const rawTransactions: Transaction[] = JSON.parse(responseText);
-    // Assign unique IDs to prevent frontend state collisions
     return rawTransactions.map(tx => {
-        // Normalize date to YYYY-MM-DD if possible
-        let normalizedDate = tx.date;
-        try {
-            const d = new Date(tx.date);
-            if (!isNaN(d.getTime())) {
-                normalizedDate = d.toISOString().split('T')[0];
-            }
-        } catch (e) {}
+      let normalizedDate = tx.date;
+      try {
+        const d = new Date(tx.date);
+        if (!isNaN(d.getTime())) {
+          normalizedDate = d.toISOString().split('T')[0];
+        }
+      } catch (e) {}
 
-        return {
-            ...tx,
-            date: normalizedDate,
-            id: tx.id || crypto.randomUUID(),
-            // ALL numbers should be positive. UI handles signing based on category.
-            amount: Math.abs(tx.amount)
-        };
+      return {
+        ...tx,
+        date: normalizedDate,
+        id: tx.id || crypto.randomUUID(),
+        amount: Math.abs(tx.amount)
+      };
     });
   } catch (err) {
     console.error("Failed to parse Gemini response:", responseText);
