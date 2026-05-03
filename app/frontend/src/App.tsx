@@ -58,8 +58,8 @@ const MainContent: React.FC<{ theme: 'dark' | 'light', setTheme: (t: 'dark' | 'l
                                         state.step === item.step 
                                             ? 'bg-primary-500/10 text-primary-500 border border-primary-500/20' 
                                             : isLocked 
-                                                ? 'opacity-30 cursor-not-allowed text-[hsl(var(--sidebar-foreground))]/20'
-                                                : 'text-[hsl(var(--sidebar-foreground))]/40 hover:bg-[hsl(var(--sidebar-foreground))]/5 border border-transparent'
+                                                ? 'opacity-40 cursor-not-allowed text-[hsl(var(--sidebar-foreground))]/50'
+                                                : 'text-[hsl(var(--sidebar-foreground))]/70 hover:bg-[hsl(var(--sidebar-foreground))]/10 border border-transparent'
                                     }`}
                                 >
                                     <div className={`p-2 rounded-xl transition-all duration-300 ${state.step === item.step ? 'bg-primary-500 text-white' : 'bg-[hsl(var(--sidebar-foreground))]/5 group-hover:bg-[hsl(var(--sidebar-foreground))]/10'}`}>

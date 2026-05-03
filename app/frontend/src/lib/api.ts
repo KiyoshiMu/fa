@@ -59,7 +59,11 @@ export interface AnalysisResponse {
   totalInflow: number;
   totalOutflow: number;
   netCashFlow: number;
-  budgetCompliance: any;
+  budgetCompliance: {
+    needs: { actualPct: number; limitPct: number; status: string };
+    wants: { actualPct: number; limitPct: number; status: string };
+    savings: { actualPct: number; limitPct: number; status: string };
+  };
   recommendation: string;
   extractedTransactions?: Transaction[];
   startDate?: string;
@@ -119,6 +123,17 @@ export async function analyzeWithAI(rawText: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ rawText }),
+  });
+  return res.json() as Promise<AnalysisResponse>;
+}
+
+export async function analyzeWithFile(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE}/cashflow/analyze-file`, {
+    method: 'POST',
+    body: formData,
   });
   return res.json() as Promise<AnalysisResponse>;
 }

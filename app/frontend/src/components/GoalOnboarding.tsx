@@ -1,25 +1,60 @@
-import React, { useState } from 'react';
-import { Home, Plane, Sparkles, ArrowRight, DollarSign, Calendar, ShieldCheck, Info } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Home, Plane, Sparkles, ArrowRight, DollarSign, Calendar, ShieldCheck, Info, Building2, Layout, Landmark, Construction } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
-import type { GoalType } from '../FinancialContext';
+import type { GoalType, PropertyType, PayFrequency } from '../FinancialContext';
+import { PROPERTY_MEDIANS, calculateCMHC, calculateMinDP } from '../lib/mortgageUtils';
 
 const GoalOnboarding: React.FC = () => {
-    const { setGoal, setStep } = useFinancial();
-    const [goalType, setGoalType] = useState<GoalType>('Home');
-    const [targetAmount, setTargetAmount] = useState<number>(50000);
-    const [currentSavings, setCurrentSavings] = useState<number>(5000);
-    const [months, setMonths] = useState<number>(36);
-    const [hasFHSA, setHasFHSA] = useState<boolean>(true);
-    const [contribution, setContribution] = useState<number>(500);
+    const { state, setGoal, setStep, setPayFrequency } = useFinancial();
+    const [goalType, setGoalType] = useState<GoalType>(state.goal?.type || 'Home');
+    
+    // Housing Specific State
+    const [propertyType, setPropertyType] = useState<PropertyType>(state.goal?.propertyType || 'condo');
+    const [dpPct, setDpPct] = useState<number>(state.goal?.downPaymentPct || 0.20);
+    const [customDP, setCustomDP] = useState<number>(state.goal?.customDP || 50000);
+    
+    // General Goal State
+    const [targetAmount, setTargetAmount] = useState<number>(state.goal?.targetAmount || 50000);
+    const [currentSavings, setCurrentSavings] = useState<number>(state.goal?.currentSavings || 5000);
+    const [months, setMonths] = useState<number>(state.goal?.months || 36);
+    const [hasFHSA, setHasFHSA] = useState<boolean>(state.goal?.hasFHSAOrTFSA ?? true);
+    const [contribution, setContribution] = useState<number>(state.goal?.contribution || 500);
+    const [payFreq, setPayFreq] = useState<PayFrequency>(state.payFrequency || 'bi-weekly');
+
+    // Auto-calculate target amount for housing
+    const displayTargetAmount = useMemo(() => {
+        if (goalType !== 'Home') return targetAmount;
+        
+        const median = PROPERTY_MEDIANS[propertyType];
+        let dpAmount = 0;
+        
+        if (dpPct === 0.05) {
+            dpAmount = calculateMinDP(median);
+        } else if (dpPct === 0.20) {
+            dpAmount = median * 0.20;
+        } else if (dpPct === 0.35) {
+            dpAmount = customDP;
+        } else {
+            dpAmount = median * dpPct;
+        }
+
+        const { insuranceAmount } = calculateCMHC(median, dpAmount);
+        return Math.round(dpAmount + insuranceAmount);
+    }, [goalType, propertyType, dpPct, customDP, targetAmount]);
 
     const handleContinue = () => {
+        setPayFrequency(payFreq);
         setGoal({
             type: goalType,
-            targetAmount,
+            targetAmount: displayTargetAmount,
             currentSavings,
             months,
             hasFHSAOrTFSA: hasFHSA,
-            contribution
+            contribution,
+            propertyType,
+            downPaymentPct: dpPct,
+            customDP,
+            medianPrice: PROPERTY_MEDIANS[propertyType]
         });
         setStep(3);
     };
@@ -28,6 +63,13 @@ const GoalOnboarding: React.FC = () => {
         { id: 'Home' as GoalType, label: 'First Home', icon: Home, desc: 'Saving for a down payment', color: 'from-blue-500 to-indigo-600' },
         { id: 'Vacation' as GoalType, label: 'Dream Vacation', icon: Plane, desc: 'Luxury travel or sabbatical', color: 'from-emerald-500 to-teal-600' },
         { id: 'Other' as GoalType, label: 'Custom Goal', icon: Sparkles, desc: 'Wedding, Car, or Life Event', color: 'from-purple-500 to-pink-600' },
+    ];
+
+    const propertyTypes = [
+        { id: 'condo' as PropertyType, label: 'Condo', icon: Building2, median: PROPERTY_MEDIANS['condo'] },
+        { id: 'townhouse' as PropertyType, label: 'Townhouse', icon: Layout, median: PROPERTY_MEDIANS['townhouse'] },
+        { id: 'semi-detached' as PropertyType, label: 'Semi-Detached', icon: Landmark, median: PROPERTY_MEDIANS['semi-detached'] },
+        { id: 'single family' as PropertyType, label: 'Single Family', icon: Construction, median: PROPERTY_MEDIANS['single family'] },
     ];
 
     return (
@@ -71,22 +113,129 @@ const GoalOnboarding: React.FC = () => {
             <div className="glass-card p-10 lg:p-14 space-y-10 border-foreground/5 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none" />
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
-                    <div className="space-y-8">
-                        <div className="space-y-4">
-                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
-                                <DollarSign className="w-4 h-4 text-primary-500" /> Target Amount
-                            </label>
-                            <div className="relative group">
-                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-foreground/20 group-focus-within:text-primary-500 transition-colors">$</span>
-                                <input
-                                    type="number"
-                                    value={targetAmount}
-                                    onChange={(e) => setTargetAmount(Number(e.target.value))}
-                                    className="w-full bg-background/50 border-2 border-border/40 focus:border-primary-500 rounded-3xl p-6 pl-12 text-3xl font-black text-foreground focus:outline-none transition-all shadow-inner"
-                                />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10">
+                    <div className="space-y-12">
+                        {goalType === 'Home' ? (
+                            <div className="space-y-10 animate-in fade-in slide-in-from-left-4 duration-700">
+                                <div className="space-y-6">
+                                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
+                                        1. What type of property do you want?
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {propertyTypes.map((pt) => (
+                                            <button
+                                                key={pt.id}
+                                                onClick={() => setPropertyType(pt.id)}
+                                                className={`p-4 rounded-2xl border-2 transition-all duration-300 text-left ${
+                                                    propertyType === pt.id 
+                                                        ? 'bg-primary-500/10 border-primary-500 shadow-lg' 
+                                                        : 'bg-background/40 border-transparent hover:border-foreground/10'
+                                                }`}
+                                            >
+                                                <pt.icon className={`w-6 h-6 mb-2 ${propertyType === pt.id ? 'text-primary-500' : 'text-foreground/20'}`} />
+                                                <div className="text-xs font-black uppercase">{pt.label}</div>
+                                                <div className="text-[10px] text-foreground/40 font-bold">${(pt.median/1000).toFixed(0)}k Median</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <label className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
+                                        2. Down Payment Percentage
+                                    </label>
+                                    <div className="flex flex-wrap gap-3">
+                                        {[
+                                            { 
+                                                label: '5% (CMHC Insured)', 
+                                                val: 0.05,
+                                                tooltip: () => {
+                                                    const median = PROPERTY_MEDIANS[propertyType];
+                                                    const minDp = calculateMinDP(median);
+                                                    const { insuranceAmount, premium } = calculateCMHC(median, minDp);
+                                                    const pct = ((minDp / median) * 100).toFixed(1);
+                                                    return (
+                                                        <div className="space-y-2">
+                                                            <div className="text-primary-500 font-bold text-sm">Min DP: ${minDp.toLocaleString()} ({pct}%)</div>
+                                                            <div className="text-foreground/60">Insurance Premium: ${(insuranceAmount).toLocaleString()} est.</div>
+                                                            <div className="text-[8px] italic opacity-50">Calculation: ${median <= 500000 ? `${median} * 5%` : `(500k * 5%) + (${(median-500000)/1000}k * 10%)`} + {premium*100}% premium</div>
+                                                        </div>
+                                                    );
+                                                }
+                                            },
+                                            { label: '20% (Recommended)', val: 0.20 },
+                                            { label: '35% or more', val: 0.35 }
+                                        ].map((opt) => (
+                                            <div key={opt.label} className="relative group/opt">
+                                                <button
+                                                    onClick={() => setDpPct(opt.val)}
+                                                    className={`px-6 py-3 rounded-full border-2 transition-all font-black text-xs flex items-center gap-2 ${
+                                                        dpPct === opt.val 
+                                                            ? 'bg-foreground text-background border-foreground shadow-lg' 
+                                                            : 'bg-background/40 border-border/40 text-foreground/40 hover:border-foreground/20'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                    {opt.tooltip && (
+                                                        <Info className={`w-3.5 h-3.5 ${dpPct === opt.val ? 'text-primary-400' : 'text-foreground/20'}`} />
+                                                    )}
+                                                </button>
+                                                {opt.tooltip && (
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-80 p-5 rounded-2xl bg-card text-card-foreground border border-border shadow-2xl opacity-0 group-hover/opt:opacity-100 transition-opacity pointer-events-none z-50">
+                                                        {opt.tooltip()}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    {dpPct === 0.35 && (
+                                        <div className="relative animate-in slide-in-from-top-2">
+                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-lg font-black text-foreground/20">$</span>
+                                            <input
+                                                type="number"
+                                                value={customDP}
+                                                onChange={(e) => setCustomDP(Number(e.target.value))}
+                                                placeholder="Enter custom amount"
+                                                className="w-full bg-background/50 border-2 border-border/40 focus:border-primary-500 rounded-2xl p-4 pl-12 text-lg font-black text-foreground focus:outline-none transition-all"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="p-6 rounded-3xl bg-primary-500/5 border border-primary-500/10 space-y-2">
+                                        <div className="flex justify-between items-end">
+                                            <div>
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-primary-500/60">Estimated Target</div>
+                                                <div className="text-3xl font-black text-foreground">${displayTargetAmount.toLocaleString()}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-foreground/30">DP + Insurance</div>
+                                                <div className="text-xs font-bold text-foreground/60 italic">
+                                                    {dpPct < 0.2 ? `Incl. approx $${(displayTargetAmount - (dpPct === 0.05 ? calculateMinDP(PROPERTY_MEDIANS[propertyType]) : PROPERTY_MEDIANS[propertyType] * dpPct)).toLocaleString()} insurance` : 'No CMHC Insurance'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
+                                <div className="space-y-4">
+                                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
+                                        <DollarSign className="w-4 h-4 text-primary-500" /> Target Amount
+                                    </label>
+                                    <div className="relative group">
+                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-foreground/20 group-focus-within:text-primary-500 transition-colors">$</span>
+                                        <input
+                                            type="number"
+                                            value={targetAmount}
+                                            onChange={(e) => setTargetAmount(Number(e.target.value))}
+                                            className="w-full bg-background/50 border-2 border-border/40 focus:border-primary-500 rounded-3xl p-6 pl-12 text-3xl font-black text-foreground focus:outline-none transition-all shadow-inner"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="space-y-4">
                             <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
@@ -129,31 +278,50 @@ const GoalOnboarding: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 rounded-3xl bg-secondary/50 border border-border/40 space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <h4 className="text-sm font-black text-foreground uppercase tracking-tight">Tax-Advantaged Accounts</h4>
-                                    <p className="text-[10px] text-foreground/40 font-medium">Do you contribute to FHSA (Home) or TFSA?</p>
+                        <div className="p-8 rounded-[2.5rem] bg-secondary/50 border border-border/40 space-y-8">
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h4 className="text-sm font-black text-foreground uppercase tracking-tight">Pay Frequency</h4>
+                                        <p className="text-[10px] text-foreground/40 font-medium">How often do you get paid?</p>
+                                    </div>
+                                    <select 
+                                        value={payFreq}
+                                        onChange={(e) => setPayFreq(e.target.value as PayFrequency)}
+                                        className="bg-background border border-border/40 rounded-xl px-4 py-2 text-xs font-black uppercase outline-none focus:border-primary-500 transition-all"
+                                    >
+                                        <option value="weekly" className="bg-slate-900 text-white">Weekly</option>
+                                        <option value="bi-weekly" className="bg-slate-900 text-white">Bi-Weekly</option>
+                                        <option value="semi-monthly" className="bg-slate-900 text-white">Semi-Monthly</option>
+                                        <option value="monthly" className="bg-slate-900 text-white">Monthly</option>
+                                    </select>
                                 </div>
-                                <div 
-                                    onClick={() => setHasFHSA(!hasFHSA)}
-                                    className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-500 ${hasFHSA ? 'bg-primary-500' : 'bg-slate-700'}`}
-                                >
-                                    <div className={`w-6 h-6 bg-white rounded-full transition-transform duration-500 ${hasFHSA ? 'translate-x-6' : 'translate-x-0'} shadow-md`} />
-                                </div>
-                            </div>
 
-                            {hasFHSA && (
-                                <div className="animate-in slide-in-from-top-2 fade-in duration-500">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 mb-2 block">Monthly Contribution</label>
-                                    <input
-                                        type="number"
-                                        value={contribution}
-                                        onChange={(e) => setContribution(Number(e.target.value))}
-                                        className="w-full bg-background/50 border border-border/40 focus:border-primary-500 rounded-xl p-3 font-mono text-sm text-foreground focus:outline-none"
-                                    />
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h4 className="text-sm font-black text-foreground uppercase tracking-tight">Tax-Advantaged Accounts</h4>
+                                        <p className="text-[10px] text-foreground/40 font-medium">Do you contribute to FHSA (Home) or TFSA?</p>
+                                    </div>
+                                    <div 
+                                        onClick={() => setHasFHSA(!hasFHSA)}
+                                        className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-500 ${hasFHSA ? 'bg-primary-500' : 'bg-slate-700'}`}
+                                    >
+                                        <div className={`w-6 h-6 bg-white rounded-full transition-transform duration-500 ${hasFHSA ? 'translate-x-6' : 'translate-x-0'} shadow-md`} />
+                                    </div>
                                 </div>
-                            )}
+
+                                {hasFHSA && (
+                                    <div className="animate-in slide-in-from-top-2 fade-in duration-500">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 mb-2 block">Monthly Contribution</label>
+                                        <input
+                                            type="number"
+                                            value={contribution}
+                                            onChange={(e) => setContribution(Number(e.target.value))}
+                                            className="w-full bg-background/50 border border-border/40 focus:border-primary-500 rounded-xl p-3 font-mono text-sm text-foreground focus:outline-none"
+                                        />
+                                    </div>
+                                )}
+                            </div>
 
                             {goalType === 'Home' && !hasFHSA && (
                                 <div className="flex items-start gap-4 p-4 rounded-2xl bg-primary-500/10 border border-primary-500/20 text-primary-500 animate-in zoom-in duration-500">
