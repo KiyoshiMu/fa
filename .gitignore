@@ -7,3 +7,4 @@ build/
 production_artifacts/
 *.log
 .vercel
+*.pdf
