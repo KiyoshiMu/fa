@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { analyzeCashFlow, analyzeWithAI, analyzeWithFile } from '../lib/api';
 import type { Transaction } from '../lib/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -30,6 +31,31 @@ const CategorySelector: React.FC<{
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+
+    const updateCoords = () => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            setCoords({
+                top: rect.bottom,
+                left: rect.left,
+                width: rect.width
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            updateCoords();
+            window.addEventListener('scroll', updateCoords, true);
+            window.addEventListener('resize', updateCoords);
+        }
+        return () => {
+            window.removeEventListener('scroll', updateCoords, true);
+            window.removeEventListener('resize', updateCoords);
+        };
+    }, [isOpen]);
+
     const selectedCategory = categories.find(c => c.id === value);
 
     return (
@@ -42,8 +68,17 @@ const CategorySelector: React.FC<{
                 <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {isOpen && (
-                <div className="absolute top-full left-0 mt-2 w-full bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            {isOpen && createPortal(
+                <div 
+                    style={{ 
+                        position: 'fixed',
+                        top: coords.top + 8,
+                        left: coords.left,
+                        width: coords.width,
+                        zIndex: 9999
+                    }}
+                    className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                >
                     {categories.map((cat) => (
                         <button
                             key={cat.id}
@@ -59,7 +94,8 @@ const CategorySelector: React.FC<{
                             {cat.label}
                         </button>
                     ))}
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
