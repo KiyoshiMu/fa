@@ -90,7 +90,7 @@ const CashFlowHub: React.FC = () => {
             'image/*': ['.png', '.jpg', '.jpeg']
         },
         multiple: false
-    });
+    } as any);
 
     const handleAddTransaction = () => {
         const newTx: Transaction = {
@@ -275,12 +275,12 @@ const CashFlowHub: React.FC = () => {
 
                                 {/* File Upload Area */}
                                 <div 
-                                    {...getRootProps()} 
+                                    {...getRootProps() as any} 
                                     className={`mb-6 border-2 border-dashed rounded-2xl p-8 transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
                                         isDragActive ? 'border-primary-500 bg-primary-500/10' : 'border-border/40 hover:border-primary-500/50 hover:bg-primary-500/5'
                                     }`}
                                 >
-                                    <input {...getInputProps()} />
+                                    <input {...getInputProps() as any} />
                                     {selectedFile ? (
                                         <div className="flex flex-col items-center gap-3 animate-in zoom-in-95 duration-300">
                                             <div className="p-4 bg-primary-500/10 rounded-2xl text-primary-500 relative">
