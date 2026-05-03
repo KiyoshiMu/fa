@@ -156,7 +156,7 @@ const GoalOnboarding: React.FC = () => {
                                                     const pct = ((minDp / median) * 100).toFixed(1);
                                                     return (
                                                         <div className="space-y-2">
-                                                            <div className="text-primary-500 font-black">Min DP: ${minDp.toLocaleString()} ({pct}%)</div>
+                                                            <div className="text-primary-500 font-bold text-sm">Min DP: ${minDp.toLocaleString()} ({pct}%)</div>
                                                             <div className="text-foreground/60">Insurance Premium: ${(insuranceAmount).toLocaleString()} est.</div>
                                                             <div className="text-[8px] italic opacity-50">Calculation: ${median <= 500000 ? `${median} * 5%` : `(500k * 5%) + (${(median-500000)/1000}k * 10%)`} + {premium*100}% premium</div>
                                                         </div>
@@ -181,7 +181,7 @@ const GoalOnboarding: React.FC = () => {
                                                     )}
                                                 </button>
                                                 {opt.tooltip && (
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-4 rounded-2xl bg-secondary border border-border shadow-2xl opacity-0 group-hover/opt:opacity-100 transition-opacity pointer-events-none z-50">
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-80 p-5 rounded-2xl bg-secondary border border-border shadow-2xl opacity-0 group-hover/opt:opacity-100 transition-opacity pointer-events-none z-50">
                                                         {opt.tooltip()}
                                                     </div>
                                                 )}
@@ -290,10 +290,10 @@ const GoalOnboarding: React.FC = () => {
                                         onChange={(e) => setPayFreq(e.target.value as PayFrequency)}
                                         className="bg-background border border-border/40 rounded-xl px-4 py-2 text-xs font-black uppercase outline-none focus:border-primary-500 transition-all"
                                     >
-                                        <option value="weekly">Weekly</option>
-                                        <option value="bi-weekly">Bi-Weekly</option>
-                                        <option value="semi-monthly">Semi-Monthly</option>
-                                        <option value="monthly">Monthly</option>
+                                        <option value="weekly" className="bg-slate-900 text-white">Weekly</option>
+                                        <option value="bi-weekly" className="bg-slate-900 text-white">Bi-Weekly</option>
+                                        <option value="semi-monthly" className="bg-slate-900 text-white">Semi-Monthly</option>
+                                        <option value="monthly" className="bg-slate-900 text-white">Monthly</option>
                                     </select>
                                 </div>
 

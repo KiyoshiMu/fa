@@ -42,7 +42,7 @@ const CategorySelector: React.FC<{
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-full left-0 mt-2 w-full bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                     {categories.map((cat) => (
                         <button
                             key={cat.id}

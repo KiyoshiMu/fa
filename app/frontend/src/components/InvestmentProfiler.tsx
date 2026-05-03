@@ -124,11 +124,11 @@ const QUESTIONS: Question[] = [
 // Radar Chart Component
 const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
     const dimensions = [
-        { name: '生存力', key: 'viability', icon: Anchor },
-        { name: '进攻力', key: 'offensiveness', icon: Target },
-        { name: '决策力', key: 'decision', icon: Compass },
-        { name: '耐力', key: 'endurance', icon: Activity },
-        { name: '适应力', key: 'adaptability', icon: Zap },
+        { name: 'Viability', key: 'viability', icon: Anchor },
+        { name: 'Offensiveness', key: 'offensiveness', icon: Target },
+        { name: 'Decision', key: 'decision', icon: Compass },
+        { name: 'Endurance', key: 'endurance', icon: Activity },
+        { name: 'Adaptability', key: 'adaptability', icon: Zap },
     ];
 
     const size = 300;
@@ -180,13 +180,14 @@ const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
 
                 {/* Labels */}
                 {dimensions.map((d, i) => {
-                    const x = center + (radius + 25) * Math.sin(i * angleStep);
-                    const y = center - (radius + 25) * Math.cos(i * angleStep);
+                    const offset = i === 0 ? 30 : 40; // More offset for side labels
+                    const x = center + (radius + offset) * Math.sin(i * angleStep);
+                    const y = center - (radius + offset) * Math.cos(i * angleStep);
                     return (
                         <text
                             key={d.key}
                             x={x} y={y}
-                            className="text-[10px] font-black uppercase tracking-widest fill-foreground/40"
+                            className="text-[11px] font-black uppercase tracking-widest fill-foreground/60"
                             textAnchor="middle"
                             dominantBaseline="middle"
                         >
