@@ -181,7 +181,7 @@ const GoalOnboarding: React.FC = () => {
                                                     )}
                                                 </button>
                                                 {opt.tooltip && (
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-80 p-5 rounded-2xl bg-slate-950 border border-border shadow-2xl opacity-0 group-hover/opt:opacity-100 transition-opacity pointer-events-none z-50">
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-80 p-5 rounded-2xl bg-card text-card-foreground border border-border shadow-2xl opacity-0 group-hover/opt:opacity-100 transition-opacity pointer-events-none z-50">
                                                         {opt.tooltip()}
                                                     </div>
                                                 )}

@@ -13,6 +13,7 @@ const CategorySelector: React.FC<{
 }> = ({ value, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const portalRef = useRef<HTMLDivElement>(null);
 
     const categories: { id: Transaction['category'], label: string }[] = [
         { id: 'Income', label: 'Income' },
@@ -23,7 +24,11 @@ const CategorySelector: React.FC<{
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const isOutsideContainer = containerRef.current && !containerRef.current.contains(target);
+            const isOutsidePortal = portalRef.current && !portalRef.current.contains(target);
+            
+            if (isOutsideContainer && isOutsidePortal) {
                 setIsOpen(false);
             }
         };
@@ -70,6 +75,7 @@ const CategorySelector: React.FC<{
 
             {isOpen && createPortal(
                 <div 
+                    ref={portalRef}
                     style={{ 
                         position: 'fixed',
                         top: coords.top + 8,
@@ -77,12 +83,13 @@ const CategorySelector: React.FC<{
                         width: coords.width,
                         zIndex: 9999
                     }}
-                    className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                    className="bg-card text-card-foreground border border-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
                 >
                     {categories.map((cat) => (
                         <button
                             key={cat.id}
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 onChange(cat.id);
                                 setIsOpen(false);
                             }}

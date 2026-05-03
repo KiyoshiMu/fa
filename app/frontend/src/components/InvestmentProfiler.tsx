@@ -187,7 +187,7 @@ const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
                         <text
                             key={d.key}
                             x={x} y={y}
-                            className="text-[11px] font-black uppercase tracking-widest fill-foreground drop-shadow-md"
+                            className="text-[11px] font-black uppercase tracking-widest fill-primary-500 drop-shadow-md"
                             textAnchor="middle"
                             dominantBaseline="middle"
                         >
