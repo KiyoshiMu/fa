@@ -108,6 +108,10 @@ const SolutionsHub: React.FC = () => {
         return profiles[state.profile?.type || 'Moderate'] || profiles['Moderate'];
     }, [state.profile]);
 
+    const surplus = state.cashFlow?.netCashFlow || 0;
+    const gap = surplus - monthlyTarget;
+    const isFunded = gap >= 0;
+
     const sparklineData = [
         { v: 10 }, { v: 15 }, { v: 12 }, { v: 18 }, { v: 22 }, { v: 20 }, { v: 24.5 }
     ];
@@ -154,20 +158,53 @@ const SolutionsHub: React.FC = () => {
             </section>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
-                {/* Monthly Target */}
-                <div className="lg:col-span-4 card p-8 flex flex-col justify-center relative overflow-hidden group bg-white border-none shadow-sm">
-                    <div className="p-3 rounded-full bg-[var(--vibrant-teal)]/10 text-[var(--vibrant-teal)] w-fit mb-8">
-                        <Zap className="w-6 h-6 fill-current" />
+                {/* Monthly Target & Gap Analysis */}
+                <div className="lg:col-span-4 space-y-8">
+                    <div className="card p-8 flex flex-col justify-center relative overflow-hidden group bg-white border-none shadow-sm">
+                        <div className="p-3 rounded-full bg-[var(--vibrant-teal)]/10 text-[var(--vibrant-teal)] w-fit mb-8">
+                            <Zap className="w-6 h-6 fill-current" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--on-surface-variant)] mb-4 flex items-center gap-2">
+                            <TrendingUp className="w-3 h-3" /> Monthly Target
+                        </p>
+                        <div className="text-6xl font-black text-[var(--on-surface)] mb-4">
+                            ${Math.round(monthlyTarget).toLocaleString()}
+                        </div>
+                        <p className="text-[10px] leading-relaxed text-[var(--on-surface-variant)] font-medium max-w-[200px]">
+                            Total required savings to meet your projected {state.goal?.type?.toLowerCase() || 'financial'} goal.
+                        </p>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--on-surface-variant)] mb-4 flex items-center gap-2">
-                        <TrendingUp className="w-3 h-3" /> Monthly Target
-                    </p>
-                    <div className="text-6xl font-black text-[var(--on-surface)] mb-4">
-                        ${Math.round(monthlyTarget).toLocaleString()}
+
+                    <div className={`card p-8 border-none shadow-sm ${isFunded ? 'bg-[var(--emerald)]/5' : 'bg-[var(--amber)]/5'}`}>
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-1">Gap Analysis</h4>
+                                <p className="text-xs font-bold text-[var(--on-surface)]">Surplus vs. Requirement</p>
+                            </div>
+                            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${isFunded ? 'bg-[var(--emerald)]/10 text-[var(--emerald)]' : 'bg-[var(--amber)]/10 text-[var(--amber)]'}`}>
+                                {isFunded ? 'Fully Funded' : 'Action Required'}
+                            </div>
+                        </div>
+
+                        <div className="mb-6">
+                            <div className={`text-3xl font-black ${isFunded ? 'text-[var(--emerald)]' : 'text-[var(--amber)]'}`}>
+                                {isFunded ? 'Fully Funded' : `-$${Math.round(Math.abs(gap)).toLocaleString()} Gap`}
+                            </div>
+                            <p className="text-[10px] font-medium text-[var(--on-surface-variant)] mt-2 leading-relaxed">
+                                {isFunded 
+                                    ? `Great news! Your monthly surplus of $${Math.round(surplus).toLocaleString()} covers the necessary $${Math.round(monthlyTarget).toLocaleString()} contribution.`
+                                    : `You are short $${Math.round(Math.abs(gap)).toLocaleString()} per month. To hit your ${horizon * 12}-month goal, you need to increase your savings or adjust your timeline.`}
+                            </p>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="h-1.5 w-full bg-[var(--surface-container)] rounded-full overflow-hidden">
+                            <div 
+                                className={`h-full transition-all duration-1000 ${isFunded ? 'bg-[var(--emerald)]' : 'bg-[var(--amber)]'}`}
+                                style={{ width: `${Math.min(100, (surplus / monthlyTarget) * 100)}%` }}
+                            />
+                        </div>
                     </div>
-                    <p className="text-[10px] leading-relaxed text-[var(--on-surface-variant)] font-medium max-w-[200px]">
-                        Total required savings to meet your projected {state.goal?.type?.toLowerCase() || 'financial'} goal.
-                    </p>
                 </div>
 
                 {/* Allocation Strategy */}

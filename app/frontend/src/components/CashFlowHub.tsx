@@ -195,10 +195,13 @@ const CashFlowHub: React.FC = () => {
     };
 
     useEffect(() => {
-        if (state.cashFlow) {
+        // Automatically analyze whenever transactions change to keep state in sync
+        const timeoutId = setTimeout(() => {
             analyzeCashFlow(transactions).then(res => setCashFlow(res));
-        }
-    }, [transactions, setCashFlow, state.cashFlow]);
+        }, 500); // Debounce to avoid excessive API calls
+        
+        return () => clearTimeout(timeoutId);
+    }, [transactions, setCashFlow]);
 
     // Note: pieData is currently unused in the horizontal bar layout
 
