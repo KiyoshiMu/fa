@@ -91,7 +91,13 @@ const SolutionsHub: React.FC = () => {
     }, [currentSavings, monthlyTarget, monthlyRate, months]);
 
     const etfDetails = useMemo(() => {
-        const profiles: Record<string, any> = {
+        interface ETFProfile {
+            ticker: string;
+            name: string;
+            allocation: string;
+            risk: string;
+        }
+        const profiles: Record<string, ETFProfile> = {
             'Safety': { ticker: 'VCIP', name: 'Conservative Income', allocation: '20% Equity / 80% Fixed', risk: 'Low' },
             'Very Conservative': { ticker: 'VCNS', name: 'Very Conservative', allocation: '40% Equity / 60% Fixed', risk: 'Low to Medium' },
             'Conservative': { ticker: 'VCNS', name: 'Conservative', allocation: '40% Equity / 60% Fixed', risk: 'Low to Medium' },
@@ -235,7 +241,7 @@ const SolutionsHub: React.FC = () => {
                             <YAxis hide domain={['dataMin - 5000', 'dataMax + 10000']} />
                             <Tooltip 
                                 contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: 'var(--shadow-lg)', fontSize: '12px', fontWeight: 'bold' }}
-                                formatter={(value: any) => [`$${Number(value).toLocaleString()}`, '']}
+                                formatter={(value: string | number | readonly (string | number)[] | undefined) => value ? [`$${Number(value).toLocaleString()}`, ''] : ['', '']}
                                 labelFormatter={(label) => label ? `Time: ${label}` : ''}
                             />
                             <Area 
