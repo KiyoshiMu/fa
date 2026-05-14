@@ -20,6 +20,7 @@ export interface AppState {
         contribution: number;
         // Housing specific
         propertyType?: PropertyType;
+        location?: string;
         downPaymentPct?: number;
         customDP?: number;
         medianPrice?: number;
@@ -44,7 +45,7 @@ interface FinancialContextType {
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
 
 const INITIAL_STATE: AppState = {
-    step: 1,
+    step: 0,
     cashFlow: null,
     payFrequency: 'bi-weekly',
     goal: null,

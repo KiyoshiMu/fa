@@ -1,350 +1,216 @@
 import React, { useState, useMemo } from 'react';
-import { Home, Plane, Sparkles, ArrowRight, DollarSign, Calendar, ShieldCheck, Info, Building2, Layout, Landmark, Construction } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  Building2, 
+  Layout, 
+  Landmark, 
+  Construction,
+  ArrowRight,
+  MapPin,
+  TrendingUp,
+  Target
+} from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
-import type { GoalType, PropertyType, PayFrequency } from '../FinancialContext';
+import type { PropertyType, PayFrequency } from '../FinancialContext';
 import { PROPERTY_MEDIANS, calculateCMHC, calculateMinDP } from '../lib/mortgageUtils';
 
 const GoalOnboarding: React.FC = () => {
-    const { state, setGoal, setStep, setPayFrequency } = useFinancial();
-    const [goalType, setGoalType] = useState<GoalType>(state.goal?.type || 'Home');
+    const { state, setGoal, setStep } = useFinancial();
     
     // Housing Specific State
-    const [propertyType, setPropertyType] = useState<PropertyType>(state.goal?.propertyType || 'condo');
-    const [dpPct, setDpPct] = useState<number>(state.goal?.downPaymentPct || 0.20);
-    const [customDP, setCustomDP] = useState<number>(state.goal?.customDP || 50000);
-    
-    // General Goal State
-    const [targetAmount, setTargetAmount] = useState<number>(state.goal?.targetAmount || 50000);
-    const [currentSavings, setCurrentSavings] = useState<number>(state.goal?.currentSavings || 5000);
-    const [months, setMonths] = useState<number>(state.goal?.months || 36);
-    const [hasFHSA, setHasFHSA] = useState<boolean>(state.goal?.hasFHSAOrTFSA ?? true);
-    const [contribution, setContribution] = useState<number>(state.goal?.contribution || 500);
-    const [payFreq, setPayFreq] = useState<PayFrequency>(state.payFrequency || 'bi-weekly');
+    const [propertyType, setPropertyType] = useState<PropertyType>(state.goal?.propertyType || 'single family');
+    const [targetAmount] = useState(state.goal?.targetAmount || PROPERTY_MEDIANS['single family']);
+    const [location, setLocation] = useState(state.goal?.location || 'Toronto, ON');
+    const [savings, setSavings] = useState(state.goal?.currentSavings || 25000);
+    const [months, setMonths] = useState(state.goal?.months || 36);
+    const [hasFHSA] = useState(state.goal?.hasFHSAOrTFSA || false);
+    const [contribution] = useState(state.cashFlow?.netCashFlow || 1500);
+    const [payFreq, setPayFreq] = useState<PayFrequency>(state.payFrequency);
 
-    // Auto-calculate target amount for housing
-    const displayTargetAmount = useMemo(() => {
-        if (goalType !== 'Home') return targetAmount;
-        
-        const median = PROPERTY_MEDIANS[propertyType];
-        let dpAmount = 0;
-        
-        if (dpPct === 0.05) {
-            dpAmount = calculateMinDP(median);
-        } else if (dpPct === 0.20) {
-            dpAmount = median * 0.20;
-        } else if (dpPct === 0.35) {
-            dpAmount = customDP;
-        } else {
-            dpAmount = median * dpPct;
-        }
+    const minDownpayment = useMemo(() => calculateMinDP(targetAmount), [targetAmount]);
+    const cmhcInsurance = useMemo(() => calculateCMHC(targetAmount, savings), [targetAmount, savings]);
 
-        const { insuranceAmount } = calculateCMHC(median, dpAmount);
-        return Math.round(dpAmount + insuranceAmount);
-    }, [goalType, propertyType, dpPct, customDP, targetAmount]);
+    const handlePropertySelect = (type: PropertyType) => {
+        setPropertyType(type);
+    };
+
+    const handleFrequencySelect = (freq: PayFrequency) => {
+        setPayFreq(freq);
+    };
 
     const handleContinue = () => {
-        setPayFrequency(payFreq);
         setGoal({
-            type: goalType,
-            targetAmount: displayTargetAmount,
-            currentSavings,
+            type: 'Home',
+            propertyType,
+            targetAmount,
+            location,
+            currentSavings: savings,
             months,
             hasFHSAOrTFSA: hasFHSA,
-            contribution,
-            propertyType,
-            downPaymentPct: dpPct,
-            customDP,
-            medianPrice: PROPERTY_MEDIANS[propertyType]
+            contribution
         });
         setStep(3);
     };
 
-    const goals = [
-        { id: 'Home' as GoalType, label: 'First Home', icon: Home, desc: 'Saving for a down payment', color: 'from-blue-500 to-indigo-600' },
-        { id: 'Vacation' as GoalType, label: 'Dream Vacation', icon: Plane, desc: 'Luxury travel or sabbatical', color: 'from-emerald-500 to-teal-600' },
-        { id: 'Other' as GoalType, label: 'Custom Goal', icon: Sparkles, desc: 'Wedding, Car, or Life Event', color: 'from-purple-500 to-pink-600' },
-    ];
-
-    const propertyTypes = [
-        { id: 'condo' as PropertyType, label: 'Condo', icon: Building2, median: PROPERTY_MEDIANS['condo'] },
-        { id: 'townhouse' as PropertyType, label: 'Townhouse', icon: Layout, median: PROPERTY_MEDIANS['townhouse'] },
-        { id: 'semi-detached' as PropertyType, label: 'Semi-Detached', icon: Landmark, median: PROPERTY_MEDIANS['semi-detached'] },
-        { id: 'single family' as PropertyType, label: 'Single Family', icon: Construction, median: PROPERTY_MEDIANS['single family'] },
+    const properties: { type: PropertyType; icon: any; label: string; desc: string }[] = [
+        { type: 'single family', icon: Building2, label: 'Detached Home', desc: 'Single-family residential' },
+        { type: 'semi-detached', icon: Layout, label: 'Semi-Detached', desc: 'Shared wall construction' },
+        { type: 'townhouse', icon: Landmark, label: 'Townhouse', desc: 'Multi-level row housing' },
+        { type: 'condo', icon: Construction, label: 'Condominium', desc: 'High-rise or low-rise unit' },
     ];
 
     return (
-        <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            <div className="text-center space-y-4">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-500 text-[10px] font-black uppercase tracking-[0.2em]">
-                    Step 2: Goal Identification
+        <div className="max-w-[1200px] mx-auto space-y-8 animate-in fade-in duration-700">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <div className="label-md text-[var(--secondary)] mb-2 uppercase tracking-widest font-bold">Step 2 of 4</div>
+                    <h2 className="headline-lg text-[var(--on-surface)]">Goal Selection</h2>
                 </div>
-                <h2 className="text-4xl lg:text-5xl font-black tracking-tight text-foreground">What are we building for?</h2>
-                <p className="text-foreground/40 text-lg max-w-2xl mx-auto italic font-medium">
-                    A goal without a plan is just a wish. Let's quantify your vision.
-                </p>
+                <div className="flex items-center gap-4">
+                    <div className="px-4 py-2 bg-[var(--surface-container-low)] rounded-full border border-[var(--outline-variant)] flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-[var(--secondary)]" />
+                        <span className="text-xs font-bold text-[var(--on-surface)]">Mortgage Compliance Verified</span>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {goals.map((g) => (
-                    <button
-                        key={g.id}
-                        onClick={() => setGoalType(g.id)}
-                        className={`group relative p-8 rounded-[2.5rem] text-left transition-all duration-500 border-2 overflow-hidden ${
-                            goalType === g.id 
-                                ? 'bg-secondary border-primary-500 shadow-2xl shadow-primary-500/20 -translate-y-2' 
-                                : 'bg-secondary/40 border-transparent hover:border-foreground/10 hover:bg-secondary/60'
-                        }`}
-                    >
-                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${g.color} flex items-center justify-center text-white mb-6 shadow-lg transform group-hover:scale-110 transition-transform duration-500`}>
-                            <g.icon className="w-8 h-8" />
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <div className="xl:col-span-2 space-y-8">
+                    <div className="card p-8">
+                        <h3 className="headline-md mb-6">Which property type are you targeting?</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {properties.map((prop) => (
+                                <button
+                                    key={prop.type}
+                                    onClick={() => handlePropertySelect(prop.type)}
+                                    className={`p-6 rounded-2xl border-2 text-left transition-all duration-300 flex items-start gap-4 group ${
+                                        propertyType === prop.type 
+                                            ? 'border-[var(--secondary)] bg-[var(--secondary-container)] bg-opacity-20' 
+                                            : 'border-[var(--outline-variant)] hover:border-[var(--secondary)] hover:bg-[var(--surface-container-low)]'
+                                    }`}
+                                >
+                                    <div className={`p-3 rounded-xl transition-colors ${propertyType === prop.type ? 'bg-[var(--secondary)] text-white' : 'bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] group-hover:bg-[var(--secondary-container)]'}`}>
+                                        <prop.icon className="w-6 h-6" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="text-sm font-bold">{prop.label}</div>
+                                        <div className="text-xs text-[var(--on-surface-variant)]">{prop.desc}</div>
+                                    </div>
+                                </button>
+                            ))}
                         </div>
-                        <h3 className="text-xl font-black text-foreground mb-2">{g.label}</h3>
-                        <p className="text-xs text-foreground/40 font-medium leading-relaxed">{g.desc}</p>
+                    </div>
+
+                    <div className="card p-8 space-y-8">
+                        <h3 className="headline-md">Goal Configuration</h3>
                         
-                        {goalType === g.id && (
-                            <div className="absolute top-6 right-6">
-                                <ShieldCheck className="w-6 h-6 text-primary-500 animate-in zoom-in duration-300" />
-                            </div>
-                        )}
-                    </button>
-                ))}
-            </div>
-
-            <div className="glass-card p-10 lg:p-14 space-y-10 border-foreground/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none" />
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10">
-                    <div className="space-y-12">
-                        {goalType === 'Home' ? (
-                            <div className="space-y-10 animate-in fade-in slide-in-from-left-4 duration-700">
-                                <div className="space-y-6">
-                                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
-                                        1. What type of property do you want?
-                                    </label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {propertyTypes.map((pt) => (
-                                            <button
-                                                key={pt.id}
-                                                onClick={() => setPropertyType(pt.id)}
-                                                className={`p-4 rounded-2xl border-2 transition-all duration-300 text-left ${
-                                                    propertyType === pt.id 
-                                                        ? 'bg-primary-500/10 border-primary-500 shadow-lg' 
-                                                        : 'bg-background/40 border-transparent hover:border-foreground/10'
-                                                }`}
-                                            >
-                                                <pt.icon className={`w-6 h-6 mb-2 ${propertyType === pt.id ? 'text-primary-500' : 'text-foreground/20'}`} />
-                                                <div className="text-xs font-black uppercase">{pt.label}</div>
-                                                <div className="text-[10px] text-foreground/40 font-bold">${(pt.median/1000).toFixed(0)}k Median</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <label className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
-                                        2. Down Payment Percentage
-                                    </label>
-                                    <div className="flex flex-wrap gap-3">
-                                        {[
-                                            { 
-                                                label: '5% (CMHC Insured)', 
-                                                val: 0.05,
-                                                tooltip: () => {
-                                                    const median = PROPERTY_MEDIANS[propertyType];
-                                                    const minDp = calculateMinDP(median);
-                                                    const { insuranceAmount, premium } = calculateCMHC(median, minDp);
-                                                    const pct = ((minDp / median) * 100).toFixed(1);
-                                                    return (
-                                                        <div className="space-y-2">
-                                                            <div className="text-primary-500 font-bold text-sm">Min DP: ${minDp.toLocaleString()} ({pct}%)</div>
-                                                            <div className="text-foreground/60">Insurance Premium: ${(insuranceAmount).toLocaleString()} est.</div>
-                                                            <div className="text-[8px] italic opacity-50">Calculation: ${median <= 500000 ? `${median} * 5%` : `(500k * 5%) + (${(median-500000)/1000}k * 10%)`} + {premium*100}% premium</div>
-                                                        </div>
-                                                    );
-                                                }
-                                            },
-                                            { label: '20% (Recommended)', val: 0.20 },
-                                            { label: '35% or more', val: 0.35 }
-                                        ].map((opt) => (
-                                            <div key={opt.label} className="relative group/opt">
-                                                <button
-                                                    onClick={() => setDpPct(opt.val)}
-                                                    className={`px-6 py-3 rounded-full border-2 transition-all font-black text-xs flex items-center gap-2 ${
-                                                        dpPct === opt.val 
-                                                            ? 'bg-foreground text-background border-foreground shadow-lg' 
-                                                            : 'bg-background/40 border-border/40 text-foreground/40 hover:border-foreground/20'
-                                                    }`}
-                                                >
-                                                    {opt.label}
-                                                    {opt.tooltip && (
-                                                        <Info className={`w-3.5 h-3.5 ${dpPct === opt.val ? 'text-primary-400' : 'text-foreground/20'}`} />
-                                                    )}
-                                                </button>
-                                                {opt.tooltip && (
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-80 p-5 rounded-2xl bg-card text-card-foreground border border-border shadow-2xl opacity-0 group-hover/opt:opacity-100 transition-opacity pointer-events-none z-50">
-                                                        {opt.tooltip()}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                    
-                                    {dpPct === 0.35 && (
-                                        <div className="relative animate-in slide-in-from-top-2">
-                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-lg font-black text-foreground/20">$</span>
-                                            <input
-                                                type="number"
-                                                value={customDP}
-                                                onChange={(e) => setCustomDP(Number(e.target.value))}
-                                                placeholder="Enter custom amount"
-                                                className="w-full bg-background/50 border-2 border-border/40 focus:border-primary-500 rounded-2xl p-4 pl-12 text-lg font-black text-foreground focus:outline-none transition-all"
-                                            />
-                                        </div>
-                                    )}
-
-                                    <div className="p-6 rounded-3xl bg-primary-500/5 border border-primary-500/10 space-y-2">
-                                        <div className="flex justify-between items-end">
-                                            <div>
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-primary-500/60">Estimated Target</div>
-                                                <div className="text-3xl font-black text-foreground">${displayTargetAmount.toLocaleString()}</div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-foreground/30">DP + Insurance</div>
-                                                <div className="text-xs font-bold text-foreground/60 italic">
-                                                    {dpPct < 0.2 ? `Incl. approx $${(displayTargetAmount - (dpPct === 0.05 ? calculateMinDP(PROPERTY_MEDIANS[propertyType]) : PROPERTY_MEDIANS[propertyType] * dpPct)).toLocaleString()} insurance` : 'No CMHC Insurance'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <label className="label-md font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Primary Location</label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--on-surface-variant)]" />
+                                    <input 
+                                        type="text" 
+                                        value={location}
+                                        onChange={(e) => setLocation(e.target.value)}
+                                        className="w-full bg-[var(--surface-container-low)] border-none rounded-xl py-4 pl-12 pr-4 text-sm font-bold"
+                                    />
                                 </div>
                             </div>
-                        ) : (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
-                                <div className="space-y-4">
-                                    <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
-                                        <DollarSign className="w-4 h-4 text-primary-500" /> Target Amount
-                                    </label>
-                                    <div className="relative group">
-                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-foreground/20 group-focus-within:text-primary-500 transition-colors">$</span>
-                                        <input
-                                            type="number"
-                                            value={targetAmount}
-                                            onChange={(e) => setTargetAmount(Number(e.target.value))}
-                                            className="w-full bg-background/50 border-2 border-border/40 focus:border-primary-500 rounded-3xl p-6 pl-12 text-3xl font-black text-foreground focus:outline-none transition-all shadow-inner"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="space-y-4">
-                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
-                                <Calendar className="w-4 h-4 text-primary-500" /> Time Horizon (Months)
-                            </label>
-                            <div className="pt-4">
-                                <input
-                                    type="range"
-                                    min="6"
-                                    max="120"
-                                    step="6"
-                                    value={months}
-                                    onChange={(e) => setMonths(Number(e.target.value))}
-                                    className="w-full h-2 bg-secondary rounded-full appearance-none cursor-pointer accent-primary-500"
-                                />
-                                <div className="flex justify-between mt-4 text-sm font-black italic text-foreground/60">
-                                    <span>6 mo</span>
-                                    <span className="text-primary-500 text-lg bg-primary-500/5 px-4 py-1 rounded-full border border-primary-500/10">
-                                        {months} Months ({(months/12).toFixed(1)} yrs)
-                                    </span>
-                                    <span>10 yrs</span>
+                            <div className="space-y-4">
+                                <label className="label-md font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Savings Cadence</label>
+                                <div className="flex p-1 bg-[var(--surface-container-low)] rounded-xl">
+                                    {(['monthly', 'semi-monthly', 'bi-weekly'] as PayFrequency[]).map((freq) => (
+                                        <button
+                                            key={freq}
+                                            onClick={() => handleFrequencySelect(freq)}
+                                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${payFreq === freq ? 'bg-white shadow-sm text-[var(--secondary)]' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}
+                                        >
+                                            {freq}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="space-y-8">
-                        <div className="space-y-4">
-                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">
-                                <Sparkles className="w-4 h-4 text-primary-500" /> Current Savings
-                            </label>
-                            <div className="relative group">
-                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-black text-foreground/20 group-focus-within:text-primary-500 transition-colors">$</span>
-                                <input
-                                    type="number"
-                                    value={currentSavings}
-                                    onChange={(e) => setCurrentSavings(Number(e.target.value))}
-                                    className="w-full bg-background/50 border-2 border-border/40 focus:border-primary-500 rounded-2xl p-5 pl-12 text-xl font-bold text-foreground focus:outline-none transition-all"
-                                />
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-end">
+                                <label className="label-md font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Current Downpayment</label>
+                                <span className="headline-md text-xl">${savings.toLocaleString()}</span>
                             </div>
+                            <input 
+                                type="range" 
+                                min="10000"
+                                max="200000"
+                                step="5000"
+                                value={savings}
+                                onChange={(e) => setSavings(Number(e.target.value))}
+                                className="w-full h-2 bg-[var(--outline-variant)] rounded-full appearance-none cursor-pointer accent-[var(--secondary)]"
+                            />
                         </div>
 
-                        <div className="p-8 rounded-[2.5rem] bg-secondary/50 border border-border/40 space-y-8">
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h4 className="text-sm font-black text-foreground uppercase tracking-tight">Pay Frequency</h4>
-                                        <p className="text-[10px] text-foreground/40 font-medium">How often do you get paid?</p>
-                                    </div>
-                                    <select 
-                                        value={payFreq}
-                                        onChange={(e) => setPayFreq(e.target.value as PayFrequency)}
-                                        className="bg-background border border-border/40 rounded-xl px-4 py-2 text-xs font-black uppercase outline-none focus:border-primary-500 transition-all"
-                                    >
-                                        <option value="weekly" className="bg-slate-900 text-white">Weekly</option>
-                                        <option value="bi-weekly" className="bg-slate-900 text-white">Bi-Weekly</option>
-                                        <option value="semi-monthly" className="bg-slate-900 text-white">Semi-Monthly</option>
-                                        <option value="monthly" className="bg-slate-900 text-white">Monthly</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h4 className="text-sm font-black text-foreground uppercase tracking-tight">Tax-Advantaged Accounts</h4>
-                                        <p className="text-[10px] text-foreground/40 font-medium">Do you contribute to FHSA (Home) or TFSA?</p>
-                                    </div>
-                                    <div 
-                                        onClick={() => setHasFHSA(!hasFHSA)}
-                                        className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-500 ${hasFHSA ? 'bg-primary-500' : 'bg-slate-700'}`}
-                                    >
-                                        <div className={`w-6 h-6 bg-white rounded-full transition-transform duration-500 ${hasFHSA ? 'translate-x-6' : 'translate-x-0'} shadow-md`} />
-                                    </div>
-                                </div>
-
-                                {hasFHSA && (
-                                    <div className="animate-in slide-in-from-top-2 fade-in duration-500">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 mb-2 block">Monthly Contribution</label>
-                                        <input
-                                            type="number"
-                                            value={contribution}
-                                            onChange={(e) => setContribution(Number(e.target.value))}
-                                            className="w-full bg-background/50 border border-border/40 focus:border-primary-500 rounded-xl p-3 font-mono text-sm text-foreground focus:outline-none"
-                                        />
-                                    </div>
-                                )}
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-end">
+                                <label className="label-md font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Horizon (Months)</label>
+                                <span className="headline-md text-xl">{months} Months</span>
                             </div>
-
-                            {goalType === 'Home' && !hasFHSA && (
-                                <div className="flex items-start gap-4 p-4 rounded-2xl bg-primary-500/10 border border-primary-500/20 text-primary-500 animate-in zoom-in duration-500">
-                                    <Info className="w-5 h-5 flex-shrink-0" />
-                                    <p className="text-[11px] font-bold leading-relaxed">
-                                        PRO TIP: For a first home in Canada, we strongly recommend opening an FHSA. It provides tax-free growth and tax deductions.
-                                    </p>
-                                </div>
-                            )}
+                            <input 
+                                type="range" 
+                                min="6"
+                                max="60"
+                                step="6"
+                                value={months}
+                                onChange={(e) => setMonths(Number(e.target.value))}
+                                className="w-full h-2 bg-[var(--outline-variant)] rounded-full appearance-none cursor-pointer accent-[var(--secondary)]"
+                            />
                         </div>
                     </div>
                 </div>
 
-                <div className="pt-8 flex justify-center">
-                    <button
-                        onClick={handleContinue}
-                        className="group relative px-12 py-5 bg-foreground text-background font-black uppercase tracking-[0.3em] text-sm rounded-full overflow-hidden transition-all duration-500 hover:scale-105 active:scale-95 shadow-2xl shadow-foreground/20"
-                    >
-                        <span className="relative z-10 flex items-center gap-3">
-                            Confirm Goal & Profile Risks <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-500" />
-                        </span>
-                        <div className="absolute inset-0 bg-primary-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                    </button>
+                <div className="xl:col-span-1 space-y-8 animate-in slide-in-from-right-4 duration-500">
+                    <div className="card p-8 bg-white border-2 border-[var(--secondary)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--secondary-container)] opacity-20 blur-3xl -mr-16 -mt-16"></div>
+                        <div className="relative z-10 space-y-8">
+                            <div>
+                                <div className="label-md text-[var(--on-surface-variant)] mb-2 uppercase tracking-widest font-bold">Goal Target</div>
+                                <h3 className="headline-lg text-[var(--on-surface)]">${targetAmount.toLocaleString()}</h3>
+                                <p className="text-xs text-[var(--on-surface-variant)] font-bold mt-1 uppercase tracking-widest italic">{propertyType} Property • {location}</p>
+                            </div>
+
+                            <div className="space-y-6 border-y border-[var(--outline-variant)] py-8">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-[var(--on-surface-variant)] font-medium">Min. Downpayment</span>
+                                    <span className="text-sm font-black">${minDownpayment.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-[var(--on-surface-variant)] font-medium">CMHC Insurance</span>
+                                    <span className="text-sm font-black text-red-500">${cmhcInsurance.insuranceAmount.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4 text-[var(--secondary)]" />
+                                        <span className="text-sm text-[var(--on-surface-variant)] font-medium">Est. Monthly Surplus</span>
+                                    </div>
+                                    <span className="text-sm font-black">${contribution.toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-xl bg-[var(--surface-container-low)] flex items-center gap-3">
+                                <Target className="w-5 h-5 text-[var(--secondary)]" />
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] leading-tight">
+                                    Targeting <span className="text-[var(--on-surface)]">{(savings / targetAmount * 100).toFixed(1)}%</span> of total value today.
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleContinue}
+                                className="w-full btn btn-primary py-5 text-lg group"
+                            >
+                                Build Profile
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

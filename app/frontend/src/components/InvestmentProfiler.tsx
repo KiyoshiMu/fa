@@ -1,9 +1,36 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { calculateInvestmentProfile } from '../lib/api';
 import type { QuestionnaireAnswers } from '../lib/api';
-import { Loader2, ChevronRight, CheckCircle2, ChevronLeft, ArrowRight, Compass, Target, Zap, Anchor, Activity } from 'lucide-react';
+import { 
+  Loader2, 
+  ChevronRight, 
+  CheckCircle2, 
+  ChevronLeft, 
+  ArrowRight, 
+  Compass, 
+  Target, 
+  Zap, 
+  Anchor, 
+  Activity,
+  Shield,
+  TrendingUp,
+  BarChart3,
+  PieChart as PieIcon
+} from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 import { mapMonthsToTimeHorizon, mapIncomeToPoints, mapStabilityToPoints, mapConcentrationToPoints } from '../lib/mortgageUtils';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 
 interface QuestionOption {
   id: string;
@@ -131,24 +158,23 @@ const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
         { name: 'Adaptability', key: 'adaptability', icon: Zap },
     ];
 
-    const size = 300;
+    const size = 260;
     const center = size / 2;
-    const radius = size * 0.4;
+    const radius = size * 0.35;
     const angleStep = (Math.PI * 2) / dimensions.length;
 
     const points = dimensions.map((d, i) => {
-        const val = data[d.key] || 0.5; // normalized 0-1
+        const val = data[d.key] || 0.5;
         const x = center + radius * val * Math.sin(i * angleStep);
         const y = center - radius * val * Math.cos(i * angleStep);
         return `${x},${y}`;
     }).join(' ');
 
-    const gridLevels = [0.2, 0.4, 0.6, 0.8, 1];
+    const gridLevels = [0.25, 0.5, 0.75, 1];
 
     return (
         <div className="relative flex flex-col items-center">
-            <svg width={size} height={size} className="overflow-visible drop-shadow-2xl">
-                {/* Grids */}
+            <svg width={size} height={size} className="overflow-visible">
                 {gridLevels.map(level => (
                     <polygon
                         key={level}
@@ -157,37 +183,34 @@ const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
                             const y = center - radius * level * Math.cos(i * angleStep);
                             return `${x},${y}`;
                         }).join(' ')}
-                        className="fill-transparent stroke-foreground/5"
+                        className="fill-transparent stroke-[var(--outline-variant)] stroke-1"
                     />
                 ))}
                 
-                {/* Axis lines */}
                 {dimensions.map((_, i) => (
                     <line
                         key={i}
                         x1={center} y1={center}
                         x2={center + radius * Math.sin(i * angleStep)}
                         y2={center - radius * Math.cos(i * angleStep)}
-                        className="stroke-foreground/5"
+                        className="stroke-[var(--outline-variant)] stroke-1"
                     />
                 ))}
 
-                {/* Data Polygon */}
                 <polygon
                     points={points}
-                    className="fill-primary-500/20 stroke-primary-500 stroke-2 transition-all duration-1000"
+                    className="fill-[var(--secondary)] fill-opacity-20 stroke-[var(--secondary)] stroke-2 transition-all duration-1000"
                 />
 
-                {/* Labels */}
                 {dimensions.map((d, i) => {
-                    const offset = i === 0 ? 30 : 40; // More offset for side labels
+                    const offset = 25;
                     const x = center + (radius + offset) * Math.sin(i * angleStep);
                     const y = center - (radius + offset) * Math.cos(i * angleStep);
                     return (
                         <text
                             key={d.key}
                             x={x} y={y}
-                            className="text-[11px] font-black uppercase tracking-widest fill-primary-500 drop-shadow-md"
+                            className="text-[9px] font-black uppercase tracking-widest fill-[var(--on-surface-variant)]"
                             textAnchor="middle"
                             dominantBaseline="middle"
                         >
@@ -196,11 +219,6 @@ const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
                     );
                 })}
             </svg>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                <div className="w-16 h-16 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center backdrop-blur-md shadow-2xl">
-                    <Compass className="w-8 h-8 text-primary-500 animate-pulse" />
-                </div>
-            </div>
         </div>
     );
 };
@@ -209,13 +227,10 @@ const InvestmentProfiler: React.FC = () => {
     const { state, setProfile: setGlobalProfile, setStep } = useFinancial();
     const [answers, setAnswers] = useState<Partial<QuestionnaireAnswers>>({});
     const [currentStep, setCurrentStep] = useState(0);
-    const [isWizard, setIsWizard] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // Filter visible questions
     const visibleQuestions = useMemo(() => QUESTIONS.filter(q => !q.linked), []);
 
-    // Combined final answers (State + Derived)
     const finalAnswers = useMemo(() => {
         const base: Partial<QuestionnaireAnswers> = { ...answers };
         if (!state.goal) return base as QuestionnaireAnswers;
@@ -237,13 +252,6 @@ const InvestmentProfiler: React.FC = () => {
         } as QuestionnaireAnswers;
     }, [answers, state.goal, state.cashFlow, state.payFrequency]);
 
-    useEffect(() => {
-        const handleResize = () => setIsWizard(window.innerWidth < 1024);
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
     const answeredCount = Object.keys(answers).filter(k => !QUESTIONS.find(q => q.id === k)?.linked).length;
     const isComplete = answeredCount === visibleQuestions.length;
 
@@ -256,9 +264,6 @@ const InvestmentProfiler: React.FC = () => {
                 type: result.profile,
                 rate: result.returnRate
             });
-            if (isWizard) {
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -266,16 +271,9 @@ const InvestmentProfiler: React.FC = () => {
         }
     };
 
-    const handleSelectChange = (id: string, value: string) => {
+    const handleAnswer = (id: string, value: string | number) => {
         setAnswers(prev => ({ ...prev, [id]: value }));
-        if (isWizard && currentStep < visibleQuestions.length - 1) {
-            setTimeout(() => setCurrentStep(prev => prev + 1), 300);
-        }
-    };
-
-    const handlePointChange = (id: string, value: number) => {
-        setAnswers(prev => ({ ...prev, [id]: value }));
-        if (isWizard && currentStep < visibleQuestions.length - 1) {
+        if (currentStep < visibleQuestions.length - 1) {
             setTimeout(() => setCurrentStep(prev => prev + 1), 300);
         }
     };
@@ -297,135 +295,243 @@ const InvestmentProfiler: React.FC = () => {
         };
     }, [finalAnswers]);
 
-    const renderQuestion = (q: typeof QUESTIONS[0], idx: number) => (
-        <div key={q.id} className="glass-card p-6 border border-border hover:border-border/60 transition-all duration-500 animate-in fade-in slide-in-from-right-4">
-            <div className="flex items-start gap-4">
-                <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary-500/5 text-primary-500 text-sm font-bold border border-primary-500/10">
-                    {idx + 1}
-                </span>
-                <div className="flex-1 space-y-4">
-                    <div>
-                        <h3 className="text-lg font-semibold text-foreground/90">{q.label}</h3>
-                        <p className="text-sm text-foreground/50 mt-1">{q.text}</p>
-                    </div>
+    const currentQ = visibleQuestions[currentStep];
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        {q.options.map(opt => {
-                            const isSelected = q.type === 'select' 
-                                ? answers[q.id as keyof QuestionnaireAnswers] === opt.id
-                                : answers[q.id as keyof QuestionnaireAnswers] === opt.points;
-                            
-                            return (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => q.type === 'select' ? handleSelectChange(q.id, opt.id) : handlePointChange(q.id, opt.points!)}
-                                    className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 ${
-                                        isSelected
-                                            ? 'bg-primary-500/10 border-primary-500 text-primary-500 shadow-[0_0_15px_rgba(14,165,233,0.1)]'
-                                            : 'bg-secondary border-border text-foreground/40 hover:bg-secondary/80 hover:border-border/60'
-                                    }`}
-                                >
-                                    {opt.label}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+    // Mock Simulation Data
+    const simulationData = [
+        { year: 0, conservative: 10000, aggressive: 10000 },
+        { year: 1, conservative: 10400, aggressive: 10800 },
+        { year: 2, conservative: 10816, aggressive: 11664 },
+        { year: 3, conservative: 11248, aggressive: 12597 },
+        { year: 4, conservative: 11698, aggressive: 13605 },
+        { year: 5, conservative: 12166, aggressive: 14693 },
+    ];
+
+    const allocationData = [
+        { name: 'Equities', value: state.profile?.type === 'Aggressive' ? 80 : 40, color: '#006a61' },
+        { name: 'Fixed Income', value: state.profile?.type === 'Aggressive' ? 15 : 50, color: '#86f2e4' },
+        { name: 'Cash', value: 5, color: '#131b2e' },
+    ];
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="max-w-[1200px] mx-auto space-y-8 animate-in fade-in duration-700">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground mb-2">Step 3: Risk Profiler</h2>
-                    <p className="text-foreground/60 max-w-2xl text-sm italic">
-                        Your strategy is automatically adapting to your goals. Complete the remaining profile questions below.
-                    </p>
+                    <div className="label-md text-[var(--secondary)] mb-2 uppercase tracking-widest font-bold">Step 3 of 4</div>
+                    <h2 className="headline-lg text-[var(--on-surface)]">Investment Profiler</h2>
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="px-4 py-2 bg-[var(--surface-container-low)] rounded-full border border-[var(--outline-variant)] flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-[var(--secondary)]" />
+                        <span className="text-xs font-bold text-[var(--on-surface)]">Institutional Grade Assessment</span>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
-                    {isWizard ? (
-                        <div className="space-y-6">
-                            {renderQuestion(visibleQuestions[currentStep], currentStep)}
-                            <div className="flex items-center justify-between gap-4 p-4 glass-card bg-secondary/40">
-                                <button
-                                    disabled={currentStep === 0}
-                                    onClick={() => setCurrentStep(prev => prev - 1)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground disabled:opacity-0 transition-all font-mono"
-                                >
-                                    <ChevronLeft className="w-4 h-4" /> Back
-                                </button>
-                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/20">
-                                    Step {currentStep + 1} of {visibleQuestions.length}
-                                </div>
-                                <button
-                                    disabled={currentStep === visibleQuestions.length - 1 || (!answers[visibleQuestions[currentStep].id as keyof QuestionnaireAnswers] && answers[visibleQuestions[currentStep].id as keyof QuestionnaireAnswers] !== 0)}
-                                    onClick={() => setCurrentStep(prev => prev + 1)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed transition-all font-mono"
-                                >
-                                    Next <ChevronRight className="w-4 h-4" />
-                                </button>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <div className="xl:col-span-2 space-y-8">
+                    <div className="card p-10 min-h-[500px] flex flex-col">
+                        <div className="flex items-center justify-between mb-12">
+                            <div className="label-md text-[var(--on-surface-variant)] uppercase tracking-widest font-bold">
+                                Question {currentStep + 1} <span className="opacity-40">/ {visibleQuestions.length}</span>
+                            </div>
+                            <div className="flex gap-2">
+                                {visibleQuestions.map((_, i) => (
+                                    <div 
+                                        key={i} 
+                                        className={`h-1 rounded-full transition-all duration-300 ${i === currentStep ? 'w-8 bg-[var(--secondary)]' : 'w-4 bg-[var(--outline-variant)]'}`}
+                                    />
+                                ))}
                             </div>
                         </div>
-                    ) : (
-                        visibleQuestions.map((q, idx) => renderQuestion(q, idx))
-                    )}
-                </div>
 
-                <div className="lg:col-span-1">
-                    <div className="sticky top-8 space-y-6">
-                        <div className="glass-card p-10 bg-gradient-to-br from-primary-500/5 to-secondary/30 border-primary-500/10">
-                            <h4 className="text-[10px] font-black text-foreground/40 mb-8 uppercase tracking-[0.2em] text-center">Live Risk Archetype</h4>
-                            <RadarChart data={radarData} />
+                        <div key={currentQ.id} className="flex-1 animate-in fade-in slide-in-from-right-4 duration-500">
+                            <h3 className="headline-md mb-2">{currentQ.label}</h3>
+                            <p className="body-lg text-[var(--on-surface-variant)] mb-10">{currentQ.text}</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {currentQ.options.map(opt => {
+                                    const isSelected = currentQ.type === 'select' 
+                                        ? answers[currentQ.id as keyof QuestionnaireAnswers] === opt.id
+                                        : answers[currentQ.id as keyof QuestionnaireAnswers] === opt.points;
+                                    
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => currentQ.type === 'select' ? handleAnswer(currentQ.id, opt.id) : handleAnswer(currentQ.id, opt.points!)}
+                                            className={`p-6 rounded-2xl border-2 text-left transition-all duration-300 flex items-center justify-between group ${
+                                                isSelected
+                                                    ? 'border-[var(--secondary)] bg-[var(--secondary-container)]'
+                                                    : 'border-[var(--outline-variant)] hover:border-[var(--secondary)] hover:bg-[var(--surface-container-low)]'
+                                            }`}
+                                        >
+                                            <span className={`body-md font-bold ${isSelected ? 'text-[var(--on-secondary-container)]' : 'text-[var(--on-surface)]'}`}>
+                                                {opt.label}
+                                            </span>
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                                isSelected 
+                                                    ? 'border-[var(--secondary)] bg-[var(--secondary)] text-white' 
+                                                    : 'border-[var(--outline-variant)] group-hover:border-[var(--secondary)]'
+                                            }`}>
+                                                {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
-                        {!state.profile ? (
+                        <div className="flex justify-between items-center mt-12 pt-8 border-t border-[var(--outline-variant)]">
                             <button
-                                onClick={handleGenerate}
-                                disabled={loading || !isComplete}
-                                className="w-full relative group px-8 py-5 bg-primary-600 hover:bg-primary-500 text-white font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(224,242,254,0.1)] hover:shadow-primary-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 overflow-hidden"
+                                onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+                                disabled={currentStep === 0}
+                                className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] disabled:opacity-0 transition-colors"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                                {loading ? (
-                                    <Loader2 className="w-6 h-6 animate-spin" />
-                                ) : (
-                                    <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                                )}
-                                {isComplete ? 'Calculate Strategy' : 'Incomplete'}
+                                <ChevronLeft className="w-4 h-4" /> Previous Question
                             </button>
-                        ) : (
-                            <button
-                                onClick={() => setStep(4)}
-                                className="w-full relative group px-8 py-5 bg-foreground text-background font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 shadow-2xl hover:scale-[1.02] flex items-center justify-center gap-2 overflow-hidden"
-                            >
-                                Get Final Recommendation <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
-                            </button>
-                        )}
+                            
+                            {!isComplete ? (
+                                <button
+                                    onClick={() => setCurrentStep(prev => Math.min(visibleQuestions.length - 1, prev + 1))}
+                                    disabled={!answers[currentQ.id as keyof QuestionnaireAnswers] && answers[currentQ.id as keyof QuestionnaireAnswers] !== 0}
+                                    className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--secondary)] hover:opacity-80 disabled:opacity-0 transition-all"
+                                >
+                                    Next Question <ChevronRight className="w-4 h-4" />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleGenerate}
+                                    disabled={loading}
+                                    className="btn btn-secondary px-8"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
+                                    Calculate Strategy
+                                </button>
+                            )}
+                        </div>
+                    </div>
 
-                        <div className="glass-card p-6 border-border/40 bg-secondary/20">
-                            <h4 className="text-[10px] font-black text-foreground/40 mb-4 flex items-center gap-2 uppercase tracking-widest">
-                                <CheckCircle2 className="w-4 h-4 text-primary-500/50" />
-                                Progress Tracking
-                            </h4>
+                </div>
+
+                <div className="xl:col-span-1 space-y-8 animate-in slide-in-from-right-4 duration-500">
+                    <div className="card p-8 bg-white overflow-hidden relative">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--secondary-container)] opacity-20 blur-3xl -mr-16 -mt-16" />
+                        
+                        <div className="relative z-10 text-center space-y-8">
+                            <div>
+                                <div className="label-md text-[var(--on-surface-variant)] mb-2 uppercase tracking-widest font-bold">Strategy Archetype</div>
+                                <h3 className="headline-lg text-[var(--secondary)]">{state.profile?.type || 'Determining...'}</h3>
+                            </div>
+
+                            <RadarChart data={radarData} />
+
                             <div className="space-y-4">
-                                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-gradient-to-r from-primary-600 to-blue-500 transition-all duration-500" 
-                                        style={{ width: `${(answeredCount / visibleQuestions.length) * 100}%` }}
-                                    />
+                                <div className="flex items-center gap-2 mb-4">
+                                    <PieIcon className="w-4 h-4 text-[var(--on-surface-variant)]" />
+                                    <span className="label-md text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">Asset Allocation</span>
                                 </div>
-                                <div className="flex justify-between text-[10px] font-black text-foreground/40 uppercase tracking-widest">
-                                    <span>{answeredCount} / {visibleQuestions.length} Complete</span>
-                                    <span>{answeredCount === visibleQuestions.length ? 'Finalized' : 'In Progress'}</span>
+                                <div className="h-48">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={allocationData}
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                            >
+                                                {allocationData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                        </PieChart>
+                                    </ResponsiveContainer>
                                 </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {allocationData.map(item => (
+                                        <div key={item.name} className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                                            <span className="text-[10px] font-bold text-[var(--on-surface-variant)]">{item.name}</span>
+                                            <span className="text-[10px] font-black ml-auto">{item.value}%</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {state.profile && (
+                                <button
+                                    onClick={() => setStep(4)}
+                                    className="w-full btn btn-primary py-5 text-lg group"
+                                >
+                                    Get Solutions
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="card p-8 bg-[var(--surface-container-low)] border-none space-y-6">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-white rounded-2xl shadow-sm text-[var(--secondary)]">
+                                <Zap className="w-6 h-6" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="text-sm font-black uppercase">Adaptive Logic</h4>
+                                <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed font-medium">
+                                    Your time horizon of <span className="text-[var(--on-surface)] font-bold">{state.goal?.months} months</span> has been factored into your risk tolerance scores.
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="card p-8">
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="p-2 bg-[var(--surface-container-low)] rounded-lg">
+                        <BarChart3 className="w-4 h-4 text-[var(--secondary)]" />
+                    </div>
+                    <h4 className="headline-md text-sm">Simulated Portfolio Performance</h4>
+                </div>
+                <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={simulationData}>
+                            <defs>
+                                <linearGradient id="colorCons" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#006a61" stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor="#006a61" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--outline-variant)" />
+                            <XAxis 
+                                dataKey="year" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fill: 'var(--on-surface-variant)', fontSize: 10}}
+                                label={{ value: 'Years', position: 'insideBottomRight', offset: -5, fontSize: 10 }}
+                            />
+                            <YAxis 
+                                hide 
+                                domain={['dataMin - 1000', 'dataMax + 1000']}
+                            />
+                            <Tooltip 
+                                contentStyle={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--outline-variant)', boxShadow: 'var(--shadow-md)' }}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="aggressive" 
+                                stroke="#006a61" 
+                                fillOpacity={1} 
+                                fill="url(#colorCons)" 
+                                strokeWidth={3}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+                <p className="text-[10px] text-[var(--on-surface-variant)] text-center mt-4 italic">
+                    * Historical simulation based on 5-year rolling returns. Past performance is not indicative of future results.
+                </p>
             </div>
         </div>
     );
