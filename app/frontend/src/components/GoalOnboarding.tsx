@@ -184,7 +184,9 @@ const GoalOnboarding: React.FC = () => {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-[var(--on-surface-variant)] font-medium">CMHC Insurance</span>
-                                    <span className="text-sm font-black text-red-500">${cmhcInsurance.insuranceAmount.toLocaleString()}</span>
+                                    <span className={`text-sm font-black ${cmhcInsurance.insuranceAmount > 0 ? 'text-red-500' : 'text-[var(--secondary)]'}`}>
+                                        {cmhcInsurance.insuranceAmount > 0 ? `$${cmhcInsurance.insuranceAmount.toLocaleString()}` : 'Not Required'}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <div className="flex items-center gap-2">

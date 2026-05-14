@@ -14,17 +14,11 @@ import {
   Activity,
   Shield,
   TrendingUp,
-  BarChart3,
   PieChart as PieIcon
 } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 import { mapMonthsToTimeHorizon, mapIncomeToPoints, mapStabilityToPoints, mapConcentrationToPoints } from '../lib/mortgageUtils';
 import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
   PieChart,
@@ -297,15 +291,6 @@ const InvestmentProfiler: React.FC = () => {
 
     const currentQ = visibleQuestions[currentStep];
 
-    // Mock Simulation Data
-    const simulationData = [
-        { year: 0, conservative: 10000, aggressive: 10000 },
-        { year: 1, conservative: 10400, aggressive: 10800 },
-        { year: 2, conservative: 10816, aggressive: 11664 },
-        { year: 3, conservative: 11248, aggressive: 12597 },
-        { year: 4, conservative: 11698, aggressive: 13605 },
-        { year: 5, conservative: 12166, aggressive: 14693 },
-    ];
 
     const allocationData = [
         { name: 'Equities', value: state.profile?.type === 'Aggressive' ? 80 : 40, color: '#006a61' },
@@ -390,22 +375,22 @@ const InvestmentProfiler: React.FC = () => {
                                 <ChevronLeft className="w-4 h-4" /> Previous Question
                             </button>
                             
-                            {!isComplete ? (
+                            {currentStep === visibleQuestions.length - 1 ? (
+                                <button
+                                    onClick={handleGenerate}
+                                    disabled={loading || (!answers[currentQ.id as keyof QuestionnaireAnswers] && answers[currentQ.id as keyof QuestionnaireAnswers] !== 0)}
+                                    className="btn btn-secondary px-8"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
+                                    Calculate Strategy
+                                </button>
+                            ) : (
                                 <button
                                     onClick={() => setCurrentStep(prev => Math.min(visibleQuestions.length - 1, prev + 1))}
                                     disabled={!answers[currentQ.id as keyof QuestionnaireAnswers] && answers[currentQ.id as keyof QuestionnaireAnswers] !== 0}
                                     className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--secondary)] hover:opacity-80 disabled:opacity-0 transition-all"
                                 >
                                     Next Question <ChevronRight className="w-4 h-4" />
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleGenerate}
-                                    disabled={loading}
-                                    className="btn btn-secondary px-8"
-                                >
-                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
-                                    Calculate Strategy
                                 </button>
                             )}
                         </div>
@@ -485,53 +470,6 @@ const InvestmentProfiler: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div className="card p-8">
-                <div className="flex items-center gap-3 mb-8">
-                    <div className="p-2 bg-[var(--surface-container-low)] rounded-lg">
-                        <BarChart3 className="w-4 h-4 text-[var(--secondary)]" />
-                    </div>
-                    <h4 className="headline-md text-sm">Simulated Portfolio Performance</h4>
-                </div>
-                <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={simulationData}>
-                            <defs>
-                                <linearGradient id="colorCons" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#006a61" stopOpacity={0.1}/>
-                                    <stop offset="95%" stopColor="#006a61" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--outline-variant)" />
-                            <XAxis 
-                                dataKey="year" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{fill: 'var(--on-surface-variant)', fontSize: 10}}
-                                label={{ value: 'Years', position: 'insideBottomRight', offset: -5, fontSize: 10 }}
-                            />
-                            <YAxis 
-                                hide 
-                                domain={['dataMin - 1000', 'dataMax + 1000']}
-                            />
-                            <Tooltip 
-                                contentStyle={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--outline-variant)', boxShadow: 'var(--shadow-md)' }}
-                            />
-                            <Area 
-                                type="monotone" 
-                                dataKey="aggressive" 
-                                stroke="#006a61" 
-                                fillOpacity={1} 
-                                fill="url(#colorCons)" 
-                                strokeWidth={3}
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-                <p className="text-[10px] text-[var(--on-surface-variant)] text-center mt-4 italic">
-                    * Historical simulation based on 5-year rolling returns. Past performance is not indicative of future results.
-                </p>
             </div>
         </div>
     );

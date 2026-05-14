@@ -11,7 +11,10 @@ import {
   Cell, 
   CartesianGrid,
   LineChart,
-  Line
+  Line,
+  AreaChart,
+  Area,
+  YAxis
 } from 'recharts';
 import { 
   Rocket, 
@@ -107,6 +110,24 @@ const SolutionsHub: React.FC = () => {
         }
         return data;
     }, [pmtWithInvest, state.profile]);
+    
+    const simulationData = useMemo(() => {
+        if (!state.goal) return [];
+        const start = state.goal.currentSavings;
+        const rate = state.profile?.rate || 0.05;
+        const monthlyRate = rate / 12;
+        const monthlyContrib = pmtWithInvest;
+        
+        const data = [];
+        let balance = start;
+        for (let y = 0; y <= 5; y++) {
+            data.push({ year: y, balance: Math.round(balance) });
+            for (let m = 0; m < 12; m++) {
+                balance = (balance + monthlyContrib) * (1 + monthlyRate);
+            }
+        }
+        return data;
+    }, [state.goal, state.profile, pmtWithInvest]);
 
     const currentAlloc = state.payFrequency === 'monthly' ? allocations.monthly : 
                    state.payFrequency === 'semi-monthly' ? allocations.semiMonthly : 
@@ -402,6 +423,59 @@ const SolutionsHub: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="card p-10">
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="p-3 bg-[var(--surface-container-low)] rounded-2xl text-[var(--secondary)]">
+                        <TrendingUp className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                        <h4 className="headline-md text-sm">Wealth Trajectory Projection</h4>
+                        <p className="text-xs text-[var(--on-surface-variant)] font-medium">Estimated portfolio growth over a 5-year institutional investment window.</p>
+                    </div>
+                </div>
+                <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={simulationData}>
+                            <defs>
+                                <linearGradient id="colorTrajectory" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="var(--secondary)" stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor="var(--secondary)" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--outline-variant)" />
+                            <XAxis 
+                                dataKey="year" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fill: 'var(--on-surface-variant)', fontSize: 10, fontWeight: 'bold'}}
+                                label={{ value: 'Years', position: 'insideBottomRight', offset: -10, fontSize: 10, fontWeight: 'bold' }}
+                            />
+                            <YAxis 
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{fill: 'var(--on-surface-variant)', fontSize: 10}}
+                                tickFormatter={(val: number) => `$${(val/1000).toFixed(0)}k`}
+                            />
+                            <Tooltip 
+                                contentStyle={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--outline-variant)', boxShadow: 'var(--shadow-md)' }}
+                                formatter={(val: any) => [`$${Number(val || 0).toLocaleString()}`, 'Portfolio Balance']}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="balance" 
+                                stroke="var(--secondary)" 
+                                fillOpacity={1} 
+                                fill="url(#colorTrajectory)" 
+                                strokeWidth={4}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+                <p className="text-[10px] text-[var(--on-surface-variant)] text-center mt-6 italic opacity-60">
+                    * Projections based on {state.profile?.type} risk profile and historical asset class returns. Non-guaranteed.
+                </p>
             </div>
         </div>
     );
