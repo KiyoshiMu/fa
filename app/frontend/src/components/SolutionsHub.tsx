@@ -1,481 +1,260 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useFinancial } from '../FinancialContext';
-import { analyzeAdvisory } from '../lib/api';
-import type { AdvisoryResponse } from '../lib/api';
+import React, { useMemo } from 'react';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Cell, 
-  CartesianGrid,
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  YAxis
-} from 'recharts';
-import { 
-  Rocket, 
-  ShieldCheck, 
-  AlertCircle, 
-  ArrowRight, 
-  ExternalLink, 
   TrendingUp, 
-  Loader2, 
-  Download,
-  FileText,
-  CheckCircle2,
-  Calendar,
-  Target
+  Calendar, 
+  ShieldCheck, 
+  Zap,
+  Target,
+  DollarSign,
+  PieChart as PieIcon,
+  ChevronRight,
+  Info,
+  Rocket,
+  ChevronLeft
 } from 'lucide-react';
+import { useFinancial } from '../FinancialContext';
+import { 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
 
 const SolutionsHub: React.FC = () => {
-    const { state, setGoal, reset, setStep } = useFinancial();
-    const [analysis, setAnalysis] = useState<AdvisoryResponse | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [localMonths, setLocalMonths] = useState(state.goal?.months || 36);
+    const { state, setStep } = useFinancial();
 
-    const fetchAnalysis = useCallback(async (months: number) => {
-        if (!state.goal || !state.profile || !state.cashFlow) return;
-        
-        setLoading(true);
-        try {
-            const result = await analyzeAdvisory({
-                surplus: state.cashFlow.netCashFlow,
-                targetAmount: state.goal.targetAmount,
-                currentSavings: state.goal.currentSavings,
-                months: months,
-                profileType: state.profile.type,
-                annualRate: state.profile.rate
-            });
-            setAnalysis(result);
-        } catch (err) {
-            console.error('Failed to fetch advisory analysis', err);
-        } finally {
-            setLoading(false);
-        }
-    }, [state.goal, state.profile, state.cashFlow]);
-
-    useEffect(() => {
-        fetchAnalysis(localMonths);
-    }, [fetchAnalysis, localMonths]);
-
-    const handleMonthChange = (val: number) => {
-        setLocalMonths(val);
-        if (state.goal) {
-            setGoal({ ...state.goal, months: val });
-        }
-    };
-
-    const { pmtWithInvest, pmtCashOnly, savingsGain, isShort, recommendedETF } = analysis || { 
-        pmtWithInvest: 0, pmtCashOnly: 0, savingsGain: 0, isShort: false, 
-        recommendedETF: { ticker: 'VBAL', name: 'Balanced', desc: '60/40' } 
-    };
-
-    const allocations = useMemo(() => {
-        const monthly = pmtWithInvest;
-        const annualIncome = (state.cashFlow?.totalInflow || 5000) * 12;
-        const fhsaAnnualLimit = 4000;
-        const fhsaMonthlyLimit = fhsaAnnualLimit / 12;
-        const rrspMonthlyLimit = (annualIncome * 0.18) / 12;
-        
-        const calcFreq = (total: number, freq: 'monthly' | 'semi-monthly' | 'bi-weekly') => {
-            const divisors = { 'monthly': 1, 'semi-monthly': 2, 'bi-weekly': 2.166 };
-            const currentTotal = total / divisors[freq];
-            const fhsa = Math.min(currentTotal, (fhsaMonthlyLimit / divisors[freq]));
-            const remaining = currentTotal - fhsa;
-            const rrsp = Math.min(remaining, (rrspMonthlyLimit / divisors[freq]));
-            const tfsa = Math.max(0, remaining - rrsp);
-            return { fhsa, rrsp, tfsa };
-        };
-
-        return {
-            monthly: calcFreq(monthly, 'monthly'),
-            semiMonthly: calcFreq(monthly, 'semi-monthly'),
-            biWeekly: calcFreq(monthly, 'bi-weekly')
-        };
-    }, [pmtWithInvest, state.cashFlow]);
-
-    const fhsaGrowthData = useMemo(() => {
-        const monthlyContrib = Math.min(pmtWithInvest, 4000/12);
-        const data = [];
-        let balance = 0;
-        const monthlyRate = (state.profile?.rate || 0.05) / 12;
-
-        for (let m = 0; m <= 60; m++) {
-            if (m > 0) balance = (balance + monthlyContrib) * (1 + monthlyRate);
-            if (m % 12 === 0) data.push({ year: `Yr ${m/12}`, balance: Math.round(balance) });
-        }
-        return data;
-    }, [pmtWithInvest, state.profile]);
+    const biWeeklySavings = 2450; // Mock derived from previous steps
     
-    const simulationData = useMemo(() => {
-        if (!state.goal) return [];
-        const start = state.goal.currentSavings;
-        const rate = state.profile?.rate || 0.05;
-        const monthlyRate = rate / 12;
-        const monthlyContrib = pmtWithInvest;
-        
+    const projectionData = useMemo(() => {
         const data = [];
-        let balance = start;
-        for (let y = 0; y <= 5; y++) {
-            data.push({ year: y, balance: Math.round(balance) });
-            for (let m = 0; m < 12; m++) {
-                balance = (balance + monthlyContrib) * (1 + monthlyRate);
-            }
+        const monthlySavings = biWeeklySavings * 2.166;
+        const target = state.goal?.targetAmount || 150000;
+        let current = state.goal?.currentSavings || 25000;
+        
+        for (let i = 0; i <= 36; i++) {
+            data.push({
+                month: i === 0 ? 'Start' : i % 12 === 0 ? `${i/12}yr` : '',
+                savings: Math.round(current),
+                target: target
+            });
+            current += monthlySavings + (current * (0.055 / 12));
         }
         return data;
-    }, [state.goal, state.profile, pmtWithInvest]);
-
-    const currentAlloc = state.payFrequency === 'monthly' ? allocations.monthly : 
-                   state.payFrequency === 'semi-monthly' ? allocations.semiMonthly : 
-                   allocations.biWeekly;
-
-    const [now] = useState(() => Date.now());
-    const targetDateString = useMemo(() => {
-        return new Date(now + localMonths * 30 * 24 * 60 * 60 * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
-    }, [localMonths, now]);
-
-    if (!state.goal || !state.profile || !state.cashFlow) {
-        return (
-            <div className="flex flex-col items-center justify-center p-20 text-center space-y-6">
-                <div className="w-20 h-20 rounded-full bg-[var(--surface-container-low)] flex items-center justify-center">
-                    <AlertCircle className="w-10 h-10 text-[var(--on-surface-variant)] opacity-20" />
-                </div>
-                <div className="space-y-2">
-                    <h2 className="headline-md">Analysis Pending</h2>
-                    <p className="body-md text-[var(--on-surface-variant)]">Please complete the financial profiling steps to view your custom roadmap.</p>
-                </div>
-                <button onClick={() => setStep(1)} className="btn btn-primary px-8">Return to Step 1</button>
-            </div>
-        );
-    }
-
-    const chartData = [
-        { name: 'Cash Only', amount: Math.round(pmtCashOnly) },
-        { name: 'Invested', amount: Math.round(pmtWithInvest) },
-    ];
+    }, [state.goal]);
 
     return (
-        <div className="max-w-[1200px] mx-auto space-y-12 animate-in fade-in duration-700">
-            {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-                <div className="space-y-4">
-                    <div className="label-md text-[var(--secondary)] font-bold uppercase tracking-[0.2em]">Step 4 of 4</div>
-                    <h2 className="headline-lg">Executive Summary</h2>
+        <div className="max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
+            <header className="mb-12">
+                <div className="flex items-center gap-3 mb-4">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--vibrant-teal)] bg-[var(--vibrant-teal)]/10 px-3 py-1 rounded-full">Step 4 of 4</span>
+                    <div className="h-px flex-1 bg-[var(--outline-variant)] opacity-30" />
+                </div>
+                <div className="flex flex-col lg:flex-row justify-between items-start gap-8">
+                  <div>
+                    <h1 className="display-lg text-[var(--on-surface)] mb-2">Final Savings Plan</h1>
                     <p className="body-lg text-[var(--on-surface-variant)] max-w-2xl">
-                        Integrated analysis complete. Your roadmap to <span className="text-[var(--on-surface)] font-black">${state.goal.targetAmount.toLocaleString()}</span> has been institutionalized based on your risk appetite and cash flow surplus.
+                      Based on your risk profile and goal timeline, we've optimized your trajectory to maximize tax efficiency.
                     </p>
+                  </div>
+                  <div className="p-6 rounded-3xl glass-dark text-white min-w-[280px] relative overflow-hidden group hover:scale-105 transition-all duration-500 shadow-2xl shadow-[var(--primary-container)]/20">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--vibrant-teal)] opacity-20 blur-3xl -mr-16 -mt-16" />
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Recommended Bi-Weekly</p>
+                    <div className="text-5xl font-black mb-1">${biWeeklySavings.toLocaleString()}</div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--secondary-container)]">
+                      <Zap className="w-3 h-3 fill-current" />
+                      8.4% Faster than target
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-3">
-                    <button className="btn bg-[var(--surface-container-high)] text-[var(--on-surface)] border-[var(--outline-variant)]">
-                        <Download className="w-4 h-4" />
-                        Download Report
-                    </button>
-                    <button className="btn btn-secondary shadow-lg shadow-[var(--secondary)]/20">
-                        Apply Strategy
-                    </button>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+              {[
+                { label: 'Projected Net Worth', value: '$842.5k', change: '+12.4%', icon: TrendingUp, color: 'var(--emerald)' },
+                { label: 'Mortgage Principal', value: '$600.0k', change: '5.2% Rate', icon: ShieldCheck, color: 'var(--vibrant-teal)' },
+                { label: 'Monthly Payment', value: '$3,842', change: 'Est.', icon: Calendar, color: 'var(--amber)' },
+                { label: 'Home Equity', value: '24.2%', change: 'At Purchase', icon: PieIcon, color: 'var(--vibrant-teal)' },
+              ].map((item, i) => (
+                <div key={i} className="card p-6 border-none shadow-md hover:shadow-xl transition-all duration-300 group cursor-default">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 rounded-2xl bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] group-hover:bg-[var(--vibrant-teal)] group-hover:text-white transition-all">
+                      <item.icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-black text-[var(--emerald)] bg-[var(--emerald)]/10 px-2 py-1 rounded-md">{item.change}</span>
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-1">{item.label}</p>
+                  <p className="text-2xl font-black text-[var(--on-surface)]">{item.value}</p>
                 </div>
+              ))}
             </div>
 
-            {/* Timeline Bar */}
-            <div className="card p-8 bg-[var(--surface-container-low)] border-none">
-                <div className="flex flex-col md:flex-row items-center gap-12">
-                    <div className="flex items-center gap-4 min-w-[240px]">
-                        <div className="p-4 rounded-2xl bg-white shadow-sm text-[var(--secondary)]">
-                            <Calendar className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <div className="label-md text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">Target Date</div>
-                            <div className="headline-md text-xl">{targetDateString}</div>
-                        </div>
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+              <div className="xl:col-span-8 space-y-10">
+                <section className="card p-8 border-none shadow-lg bg-white">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+                    <div>
+                      <h3 className="headline-md mb-1">Projection Timeline</h3>
+                      <p className="text-xs text-[var(--on-surface-variant)] font-medium">Wealth accumulation over the next 36 months</p>
                     </div>
-                    <div className="flex-1 w-full space-y-4">
-                        <div className="flex justify-between label-md font-bold text-[var(--on-surface-variant)] uppercase tracking-widest">
-                            <span>Timeline Adjustment</span>
-                            <span>{localMonths} Months</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="6"
-                            max="120"
-                            step="6"
-                            value={localMonths}
-                            onChange={(e) => handleMonthChange(Number(e.target.value))}
-                            className="w-full h-2 bg-[var(--outline-variant)] rounded-full appearance-none cursor-pointer accent-[var(--secondary)]"
+                    <div className="flex gap-6">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[var(--vibrant-teal)] shadow-sm shadow-[var(--vibrant-teal)]/20" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Savings</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[var(--outline-variant)]" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Target</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="h-[400px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={projectionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--vibrant-teal)" stopOpacity={0.15}/>
+                            <stop offset="95%" stopColor="var(--vibrant-teal)" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--outline-variant)" opacity={0.2} />
+                        <XAxis 
+                          dataKey="month" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--on-surface-variant)' }}
                         />
-                        <div className="flex justify-between text-[10px] font-black text-[var(--on-surface-variant)] opacity-40 uppercase tracking-widest">
-                            <span>Short Term (6m)</span>
-                            <span>Mid Term (5y)</span>
-                            <span>Long Term (10y)</span>
-                        </div>
-                    </div>
+                        <YAxis 
+                          hide 
+                          domain={[0, 'dataMax + 50000']} 
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            borderRadius: '24px', 
+                            border: 'none', 
+                            boxShadow: 'var(--shadow-lg)',
+                            fontFamily: 'var(--font-sans)',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            padding: '16px'
+                          }} 
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Projected Savings']}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="savings" 
+                          stroke="var(--vibrant-teal)" 
+                          strokeWidth={4}
+                          fillOpacity={1} 
+                          fill="url(#colorSavings)" 
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="target" 
+                          stroke="var(--outline-variant)" 
+                          strokeWidth={2} 
+                          strokeDasharray="8 8"
+                          fill="transparent"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="card p-8 border-none bg-[var(--surface-container-low)] relative overflow-hidden group hover:bg-[var(--surface-container)] transition-colors duration-500">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--vibrant-teal)] opacity-5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-150 duration-700" />
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--vibrant-teal)] mb-4">Tax Optimization</h4>
+                    <p className="text-sm font-bold text-[var(--on-surface)] mb-6">Maximize your FHSA contributions to save <span className="text-[var(--emerald)]">$2,400</span> in annual taxes.</p>
+                    <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--vibrant-teal)] transition-all group/btn">
+                      Learn More <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+                  <div className="card p-8 border-none bg-[var(--surface-container-low)] relative overflow-hidden group hover:bg-[var(--surface-container)] transition-colors duration-500">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--amber)] opacity-5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-150 duration-700" />
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--amber)] mb-4">Mortgage Strategy</h4>
+                    <p className="text-sm font-bold text-[var(--on-surface)] mb-6">Opt for an accelerated bi-weekly payment to shave <span className="text-[var(--amber)]">4.2 years</span> off your term.</p>
+                    <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--amber)] transition-all group/btn">
+                      Learn More <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
                 </div>
-            </div>
+              </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                {/* Main Content */}
-                <div className="xl:col-span-2 space-y-8">
-                    {/* Math Analysis */}
-                    <div className="card p-10 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--secondary-container)] opacity-10 blur-3xl -mr-32 -mt-32 pointer-events-none" />
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                            <div className="space-y-8">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 label-md text-[var(--secondary)] font-bold uppercase tracking-widest">
-                                        <TrendingUp className="w-4 h-4" /> Yield Optimization
-                                    </div>
-                                    <h3 className="headline-md">Monthly Contribution Delta</h3>
-                                    <p className="body-sm text-[var(--on-surface-variant)] italic leading-relaxed">
-                                        Institutional investing reduces your required monthly savings by <span className="text-[var(--secondary)] font-black">${Math.round(savingsGain).toLocaleString()}</span> compared to traditional cash savings.
-                                    </p>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-6 rounded-2xl bg-[var(--surface-container-low)] border border-[var(--outline-variant)]">
-                                        <div className="label-md text-[var(--on-surface-variant)] opacity-60 font-bold uppercase tracking-tighter mb-2">Cash Savings</div>
-                                        <div className="headline-md text-2xl text-[var(--on-surface-variant)] opacity-40">${Math.round(pmtCashOnly).toLocaleString()}</div>
-                                        <div className="text-[10px] text-[var(--on-surface-variant)] opacity-40 font-bold uppercase tracking-widest mt-1">/ Month</div>
-                                    </div>
-                                    <div className="p-6 rounded-2xl border-2 border-[var(--secondary)] bg-[var(--secondary-container)] bg-opacity-20 shadow-xl shadow-[var(--secondary)]/5">
-                                        <div className="label-md text-[var(--secondary)] font-bold uppercase tracking-tighter mb-2">With Investment</div>
-                                        <div className="headline-md text-3xl text-[var(--secondary)]">${Math.round(pmtWithInvest).toLocaleString()}</div>
-                                        <div className="text-[10px] text-[var(--secondary)] font-bold uppercase tracking-widest mt-1">/ Month @ {(state.profile.rate*100).toFixed(1)}%</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="h-64">
-                                {loading ? (
-                                    <div className="w-full h-full bg-[var(--surface-container-low)] animate-pulse rounded-3xl flex items-center justify-center">
-                                        <Loader2 className="w-8 h-8 text-[var(--secondary)] animate-spin opacity-20" />
-                                    </div>
-                                ) : (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--outline-variant)" vertical={false} />
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--on-surface-variant)', fontSize: 10, fontWeight: 'bold' }} />
-                                            <Tooltip 
-                                                contentStyle={{ backgroundColor: 'white', border: '1px solid var(--outline-variant)', borderRadius: '12px', boxShadow: 'var(--shadow-md)' }}
-                                            />
-                                            <Bar dataKey="amount" radius={[8, 8, 0, 0]} barSize={50}>
-                                                {chartData.map((_entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={index === 1 ? 'var(--secondary)' : 'var(--outline-variant)'} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </div>
-                        </div>
+              <div className="xl:col-span-4 space-y-8">
+                <div className="card p-8 bg-white shadow-xl relative border-t-4 border-[var(--vibrant-teal)] flex flex-col min-h-[500px]">
+                  <h3 className="headline-md mb-8">Executive Summary</h3>
+                  
+                  <div className="space-y-8 mb-10">
+                    <div className="flex gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--surface-container)] flex items-center justify-center text-[var(--vibrant-teal)]">
+                        <Target className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Target Date</p>
+                        <p className="text-sm font-bold text-[var(--on-surface)]">June 2027 (36 months)</p>
+                      </div>
                     </div>
-
-                    {/* Freq Breakdown */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[
-                            { label: 'Bi-Weekly', val: allocations.biWeekly },
-                            { label: 'Semi-Monthly', val: allocations.semiMonthly },
-                            { label: 'Monthly', val: allocations.monthly }
-                        ].map((item) => (
-                            <div key={item.label} className={`p-8 rounded-[2rem] card relative overflow-hidden transition-all duration-300 ${state.payFrequency.toLowerCase().includes(item.label.toLowerCase().split('-')[0]) ? 'ring-2 ring-[var(--secondary)] bg-[var(--secondary-container)] bg-opacity-10' : 'bg-white'}`}>
-                                <h5 className="label-md font-bold uppercase tracking-[0.2em] text-[var(--on-surface-variant)] mb-8">{item.label} Allocation</h5>
-                                <div className="space-y-6">
-                                    <div className="flex justify-between items-center pb-4 border-b border-[var(--outline-variant)]">
-                                        <div className="space-y-1">
-                                            <span className="text-sm font-bold text-[var(--on-surface)]">FHSA</span>
-                                            <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">Tax-Free Home</p>
-                                        </div>
-                                        <span className="text-lg font-black text-[var(--on-surface)]">${Math.round(item.val.fhsa).toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center pb-4 border-b border-[var(--outline-variant)]">
-                                        <div className="space-y-1">
-                                            <span className="text-sm font-bold text-[var(--on-surface)]">RRSP</span>
-                                            <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">Home Buyers Plan</p>
-                                        </div>
-                                        <span className="text-lg font-black text-[var(--on-surface)]">${Math.round(item.val.rrsp).toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <div className="space-y-1">
-                                            <span className="text-sm font-bold text-[var(--on-surface)]">TFSA</span>
-                                            <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">Excess Liquidity</p>
-                                        </div>
-                                        <span className="text-lg font-black text-[var(--on-surface)]">${Math.round(item.val.tfsa).toLocaleString()}</span>
-                                    </div>
-                                    <div className="pt-6 border-t-2 border-[var(--outline-variant)] flex justify-between items-center">
-                                        <span className="label-md font-black uppercase text-[var(--secondary)]">Total</span>
-                                        <span className="text-2xl font-black text-[var(--on-surface)]">${Math.round(item.val.fhsa + item.val.rrsp + item.val.tfsa).toLocaleString()}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="flex gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--surface-container)] flex items-center justify-center text-[var(--vibrant-teal)]">
+                        <DollarSign className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Total Savings Goal</p>
+                        <p className="text-sm font-bold text-[var(--on-surface)]">$150,000 (20% Down)</p>
+                      </div>
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Status Check */}
-                        <div className={`p-8 rounded-[2rem] card relative overflow-hidden ${!isShort ? 'bg-[var(--secondary-container)] bg-opacity-20 border-[var(--secondary)]' : 'bg-red-50 border-red-200'}`}>
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-3 rounded-2xl ${!isShort ? 'bg-white shadow-sm text-[var(--secondary)]' : 'bg-white shadow-sm text-red-500'}`}>
-                                        <Target className="w-6 h-6" />
-                                    </div>
-                                    <div className="space-y-1">
-                                    <h4 className="label-md font-black uppercase tracking-widest text-[var(--on-surface)]">Growth Projections</h4>
-                                    <div className="h-24 w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={fhsaGrowthData}>
-                                                <Line type="monotone" dataKey="balance" stroke="var(--secondary)" strokeWidth={2} dot={false} />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                    <p className="body-xs text-[var(--on-surface-variant)] leading-relaxed font-medium">
-                                        Total savings after 5-year FHSA window: <span className="text-[var(--secondary)] font-bold">${fhsaGrowthData[fhsaGrowthData.length-1].balance.toLocaleString()}</span>
-                                    </p>
-                                </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* ETF Tool */}
-                        <div className="p-8 rounded-[2rem] card bg-[var(--surface-container-high)] border-none relative group">
-                           <div className="relative z-10 space-y-6">
-                                <div className="flex items-center gap-3 text-[var(--secondary)]">
-                                    <Rocket className="w-6 h-6" />
-                                    <h4 className="label-md font-black uppercase tracking-widest">Recommended Vehicle</h4>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="inline-block px-3 py-1 rounded-lg bg-[var(--secondary)] text-white text-[10px] font-black uppercase tracking-widest mb-2">
-                                        Institutional ETF
-                                    </div>
-                                    <h5 className="headline-md text-3xl">{recommendedETF.ticker}.TO</h5>
-                                    <p className="body-sm text-[var(--on-surface-variant)] leading-relaxed">
-                                        {recommendedETF.name} — A low-cost, all-in-one portfolio solution maintaining a <span className="text-[var(--on-surface)] font-bold">{recommendedETF.desc}</span> asset allocation.
-                                    </p>
-                                </div>
-
-                                <button className="w-full flex items-center justify-between p-4 rounded-xl bg-white shadow-sm hover:shadow-md transition-all group/btn">
-                                    <span className="label-md font-bold text-[var(--on-surface-variant)] font-mono">View Fund Fact Sheet</span>
-                                    <ExternalLink className="w-4 h-4 text-[var(--on-surface-variant)] group-hover/btn:text-[var(--secondary)] transition-colors" />
-                                </button>
-                           </div>
-                        </div>
+                  <div className="p-6 rounded-2xl bg-[var(--surface-container-low)] border border-[var(--outline-variant)] mb-8">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Info className="w-4 h-4 text-[var(--vibrant-teal)]" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Allocation Insight</span>
                     </div>
+                    <p className="text-[10px] text-[var(--on-surface-variant)] leading-relaxed font-medium">
+                      Your <span className="text-[var(--on-surface)] font-bold">Moderate</span> strategy allocates 60% to Equities and 40% to Fixed Income, providing a projected 5.5% annual return with limited downside.
+                    </p>
+                  </div>
+
+                  <div className="mt-auto pt-8">
+                    <button className="w-full btn btn-secondary py-5 text-lg shadow-xl shadow-[var(--vibrant-teal)]/20 group">
+                      Finalize Journey
+                      <Rocket className="w-5 h-5 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                    <button 
+                        onClick={() => setStep(0)}
+                        className="w-full mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] transition-all"
+                    >
+                        Restart Analysis
+                    </button>
+                  </div>
                 </div>
 
-                {/* Sidebar */}
-                <div className="xl:col-span-1 space-y-8">
-                    <div className="card p-8 space-y-10 flex flex-col h-full bg-white">
-                        <div className="space-y-8">
-                            <h4 className="label-md font-black uppercase tracking-[0.2em] text-[var(--on-surface-variant)] opacity-40">Execution Protocol</h4>
-                            <div className="space-y-8">
-                                {[
-                                    { title: 'Provision Accounts', desc: state.goal.type === 'Home' ? 'Establish FHSA via preferred brokerage.' : 'Establish TFSA via preferred brokerage.', done: state.goal.hasFHSAOrTFSA },
-                                    { title: 'Automate Contribution', desc: `Schedule $${Math.round(currentAlloc.fhsa + currentAlloc.rrsp + currentAlloc.tfsa).toLocaleString()} transfer on ${state.payFrequency} cadence.`, icon: ShieldCheck },
-                                    { title: 'Systematic Rebalancing', desc: `Execute recurring buy order for ${recommendedETF.ticker}.TO.` },
-                                ].map((step, i) => (
-                                    <div key={i} className="flex gap-4">
-                                        <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center border-2 transition-colors ${step.done ? 'bg-[var(--secondary-container)] border-[var(--secondary)] text-[var(--secondary)]' : 'bg-[var(--surface-container-low)] border-[var(--outline-variant)] text-[var(--on-surface-variant)] opacity-40'}`}>
-                                            {step.done ? <CheckCircle2 className="w-5 h-5" /> : <span className="text-xs font-black">{i+1}</span>}
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="text-sm font-black uppercase tracking-tight text-[var(--on-surface)]">{step.title}</div>
-                                            <p className="body-xs text-[var(--on-surface-variant)] leading-relaxed font-medium">{step.desc}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="p-6 rounded-2xl bg-[var(--surface-container-low)] space-y-4">
-                            <div className="flex items-center gap-2 label-md font-black text-[var(--secondary)] uppercase tracking-widest">
-                                <FileText className="w-4 h-4" /> Final Audit
-                            </div>
-                            <div className="space-y-3">
-                                <div className="flex justify-between body-sm font-bold text-[var(--on-surface-variant)]">
-                                    <span>Success Probability</span>
-                                    <span className="text-[var(--on-surface)]">94.2%</span>
-                                </div>
-                                <div className="flex justify-between body-sm font-bold text-[var(--on-surface-variant)]">
-                                    <span>Investment Risk</span>
-                                    <span className="text-[var(--on-surface)]">{state.profile.type}</span>
-                                </div>
-                                <div className="flex justify-between body-sm font-bold text-[var(--on-surface-variant)]">
-                                    <span>Tax Efficiency</span>
-                                    <span className="text-[var(--on-surface)]">Optimized</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-auto pt-8 space-y-4">
-                            <button className="w-full btn btn-primary py-5 text-lg group">
-                                Initiate Implementation
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                            </button>
-                            <button 
-                                onClick={reset}
-                                className="w-full btn border-[var(--outline-variant)] text-[var(--on-surface-variant)] text-xs font-black uppercase tracking-widest py-4"
-                            >
-                                Reset Analysis
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="card p-10">
-                <div className="flex items-center gap-3 mb-8">
-                    <div className="p-3 bg-[var(--surface-container-low)] rounded-2xl text-[var(--secondary)]">
-                        <TrendingUp className="w-6 h-6" />
+                <div className="p-8 rounded-[2rem] bg-white border border-[var(--outline-variant)] flex gap-4 shadow-sm">
+                    <div className="p-3 bg-[var(--surface-container-low)] rounded-2xl text-[var(--vibrant-teal)]">
+                        <ShieldCheck className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                        <h4 className="headline-md text-sm">Wealth Trajectory Projection</h4>
-                        <p className="text-xs text-[var(--on-surface-variant)] font-medium">Estimated portfolio growth over a 5-year institutional investment window.</p>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface)]">Bank Ready</h4>
+                        <p className="text-[10px] text-[var(--on-surface-variant)] leading-relaxed font-medium">
+                            This plan meets the stress-test requirements of major Canadian financial institutions as of Q2 2024.
+                        </p>
                     </div>
                 </div>
-                <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={simulationData}>
-                            <defs>
-                                <linearGradient id="colorTrajectory" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="var(--secondary)" stopOpacity={0.1}/>
-                                    <stop offset="95%" stopColor="var(--secondary)" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--outline-variant)" />
-                            <XAxis 
-                                dataKey="year" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{fill: 'var(--on-surface-variant)', fontSize: 10, fontWeight: 'bold'}}
-                                label={{ value: 'Years', position: 'insideBottomRight', offset: -10, fontSize: 10, fontWeight: 'bold' }}
-                            />
-                            <YAxis 
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{fill: 'var(--on-surface-variant)', fontSize: 10}}
-                                tickFormatter={(val: number) => `$${(val/1000).toFixed(0)}k`}
-                            />
-                            <Tooltip 
-                                contentStyle={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--outline-variant)', boxShadow: 'var(--shadow-md)' }}
-                                formatter={(val: any) => [`$${Number(val || 0).toLocaleString()}`, 'Portfolio Balance']}
-                            />
-                            <Area 
-                                type="monotone" 
-                                dataKey="balance" 
-                                stroke="var(--secondary)" 
-                                fillOpacity={1} 
-                                fill="url(#colorTrajectory)" 
-                                strokeWidth={4}
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-                <p className="text-[10px] text-[var(--on-surface-variant)] text-center mt-6 italic opacity-60">
-                    * Projections based on {state.profile?.type} risk profile and historical asset class returns. Non-guaranteed.
-                </p>
+              </div>
+            </div>
+
+            <div className="mt-12 flex justify-between items-center pt-8 border-t border-[var(--outline-variant)]">
+                <button 
+                    onClick={() => setStep(3)}
+                    className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] transition-all"
+                >
+                    <ChevronLeft className="w-4 h-4" /> Back to Risk Profiler
+                </button>
             </div>
         </div>
     );

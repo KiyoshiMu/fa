@@ -22,30 +22,30 @@ const HealthIndicator: React.FC = () => {
     }, []);
 
     return (
-        <div className="flex items-center gap-2 group cursor-pointer transition-all duration-300">
-            <div className={`relative flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-500 ${
+        <div className="flex items-center gap-3 group cursor-pointer transition-all duration-300">
+            <div className={`relative flex items-center justify-center w-9 h-9 rounded-xl border transition-all duration-500 ${
                 status === 'OK' 
-                    ? 'bg-green-500/10 border-green-500/20 text-green-400 group-hover:bg-green-500/20' 
+                    ? 'bg-[var(--emerald)]/10 border-[var(--emerald)]/20 text-[var(--emerald)] group-hover:bg-[var(--emerald)]/20' 
                     : status === 'ERROR' 
-                    ? 'bg-red-500/10 border-red-500/20 text-red-400' 
-                    : 'bg-[hsl(var(--sidebar-foreground))]/5 border-[hsl(var(--sidebar-foreground))]/10 text-[hsl(var(--sidebar-foreground))]/20'
+                    ? 'bg-red-500/10 border-red-500/20 text-red-500' 
+                    : 'bg-[var(--on-surface-variant)]/5 border-[var(--on-surface-variant)]/10 text-[var(--on-surface-variant)]/20'
             }`}>
                 {status === 'OK' ? (
                     <>
-                        <ShieldCheck className="w-4 h-4" />
-                        <span className="absolute inset-0 rounded-full border border-green-500/20 animate-ping opacity-20" />
+                        <ShieldCheck className="w-5 h-5" />
+                        <span className="absolute inset-0 rounded-xl border border-[var(--emerald)]/20 animate-ping opacity-20" />
                     </>
                 ) : status === 'ERROR' ? (
-                    <AlertTriangle className="w-4 h-4" />
+                    <AlertTriangle className="w-5 h-5" />
                 ) : (
-                    <Activity className="w-4 h-4 animate-pulse" />
+                    <Activity className="w-5 h-5 animate-pulse" />
                 )}
             </div>
             
-            <div className="hidden sm:block">
-                <div className="text-[10px] font-bold text-[hsl(var(--sidebar-foreground))]/30 uppercase tracking-widest leading-none mb-1">System Health</div>
-                <div className="text-[11px] font-black text-[hsl(var(--sidebar-foreground))]/60 tracking-tighter uppercase leading-none">
-                    {status === 'OK' ? 'Backend Operational' : status === 'ERROR' ? 'Connection Lost' : 'Checking Link...'}
+            <div className="hidden lg:block">
+                <div className="text-[9px] font-black text-[var(--on-surface-variant)]/40 uppercase tracking-[0.2em] leading-none mb-1">Grid Status</div>
+                <div className="text-[11px] font-black text-[var(--on-surface-variant)]/80 tracking-tighter uppercase leading-none">
+                    {status === 'OK' ? 'Terminal Active' : status === 'ERROR' ? 'Grid Offline' : 'Syncing...'}
                 </div>
             </div>
         </div>

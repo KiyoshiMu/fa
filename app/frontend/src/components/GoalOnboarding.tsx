@@ -1,219 +1,286 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  ShieldCheck, 
   Building2, 
-  Layout, 
-  Landmark, 
-  Construction,
-  ArrowRight,
-  MapPin,
-  TrendingUp,
-  Target
+  Home,
+  Info,
+  ChevronRight,
+  ChevronLeft,
+  Zap
 } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 import type { PropertyType, PayFrequency } from '../FinancialContext';
-import { PROPERTY_MEDIANS, calculateCMHC, calculateMinDP } from '../lib/mortgageUtils';
+import { calculateCMHC } from '../lib/mortgageUtils';
 
 const GoalOnboarding: React.FC = () => {
     const { state, setGoal, setStep } = useFinancial();
     
-    // Housing Specific State
-    const [propertyType, setPropertyType] = useState<PropertyType>(state.goal?.propertyType || 'single family');
-    const [targetAmount] = useState(state.goal?.targetAmount || PROPERTY_MEDIANS['single family']);
-    const [location, setLocation] = useState(state.goal?.location || 'Toronto, ON');
-    const [savings, setSavings] = useState(state.goal?.currentSavings || 25000);
+    const [propertyType, setPropertyType] = useState<PropertyType>(state.goal?.propertyType || 'condo');
+    const [targetAmount, setTargetAmount] = useState(state.goal?.targetAmount || 750000);
+    const [savings, setSavings] = useState(state.goal?.currentSavings || 37500);
     const [months, setMonths] = useState(state.goal?.months || 36);
-    const [hasFHSA] = useState(state.goal?.hasFHSAOrTFSA || false);
-    const [contribution] = useState(state.cashFlow?.netCashFlow || 1500);
-    const [payFreq, setPayFreq] = useState<PayFrequency>(state.payFrequency);
+    const [payFreq, setPayFreq] = useState<PayFrequency>(state.payFrequency || 'bi-weekly');
+    const [dpStrategy, setDpStrategy] = useState<'5%' | '20%' | 'custom'>(
+        savings / targetAmount <= 0.05 ? '5%' : savings / targetAmount >= 0.2 ? '20%' : 'custom'
+    );
 
-    const minDownpayment = useMemo(() => calculateMinDP(targetAmount), [targetAmount]);
     const cmhcInsurance = useMemo(() => calculateCMHC(targetAmount, savings), [targetAmount, savings]);
-
-    const handlePropertySelect = (type: PropertyType) => {
-        setPropertyType(type);
-    };
-
-    const handleFrequencySelect = (freq: PayFrequency) => {
-        setPayFreq(freq);
-    };
+    
+    // Simple Bi-weekly savings calc for display
+    const savingsGoal = targetAmount * (dpStrategy === '5%' ? 0.05 : dpStrategy === '20%' ? 0.2 : (savings / targetAmount));
+    const biWeeklySavings = Math.max(0, Math.round((savingsGoal - (state.goal?.currentSavings ?? 0)) / (months * 2.166)));
 
     const handleContinue = () => {
         setGoal({
-            type: 'Home',
+            ...state.goal!,
             propertyType,
             targetAmount,
-            location,
             currentSavings: savings,
             months,
-            hasFHSAOrTFSA: hasFHSA,
-            contribution
         });
         setStep(3);
     };
 
-    const properties: { type: PropertyType; icon: any; label: string; desc: string }[] = [
-        { type: 'single family', icon: Building2, label: 'Detached Home', desc: 'Single-family residential' },
-        { type: 'semi-detached', icon: Layout, label: 'Semi-Detached', desc: 'Shared wall construction' },
-        { type: 'townhouse', icon: Landmark, label: 'Townhouse', desc: 'Multi-level row housing' },
-        { type: 'condo', icon: Construction, label: 'Condominium', desc: 'High-rise or low-rise unit' },
+    const properties: { type: PropertyType; icon: React.ElementType; label: string }[] = [
+        { type: 'condo', icon: Building2, label: 'Condo' },
+        { type: 'townhouse', icon: Home, label: 'Townhouse' },
+        { type: 'semi-detached', icon: Home, label: 'Semi-Detached' },
+        { type: 'single family', icon: Home, label: 'Detached' },
     ];
 
     return (
-        <div className="max-w-[1200px] mx-auto space-y-8 animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <div className="label-md text-[var(--secondary)] mb-2 uppercase tracking-widest font-bold">Step 2 of 4</div>
-                    <h2 className="headline-lg text-[var(--on-surface)]">Goal Selection</h2>
+        <div className="max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <header className="mb-12">
+                <div className="flex items-center gap-3 mb-4">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--vibrant-teal)] bg-[var(--vibrant-teal)]/10 px-3 py-1 rounded-full">Step 2 of 4</span>
+                    <div className="h-px flex-1 bg-[var(--outline-variant)] opacity-30" />
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="px-4 py-2 bg-[var(--surface-container-low)] rounded-full border border-[var(--outline-variant)] flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-[var(--secondary)]" />
-                        <span className="text-xs font-bold text-[var(--on-surface)]">Mortgage Compliance Verified</span>
+                <h1 className="display-lg text-[var(--on-surface)] mb-4">Target Property Details</h1>
+                <p className="body-lg text-[var(--on-surface-variant)] max-w-2xl">
+                    Define your future home parameters to calculate precise down payment requirements and CMHC insurance premiums.
+                </p>
+            </header>
+
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+                <div className="xl:col-span-8 space-y-10">
+                    {/* Property Type */}
+                    <section>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-4">Property Type</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {properties.map((prop) => (
+                                <button
+                                    key={prop.type}
+                                    onClick={() => setPropertyType(prop.type)}
+                                    className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-4 transition-all duration-300 ${
+                                        propertyType === prop.type 
+                                            ? 'border-[var(--vibrant-teal)] bg-[var(--surface-container-low)] shadow-sm' 
+                                            : 'border-[var(--outline-variant)] bg-white hover:border-[var(--vibrant-teal)]/50'
+                                    }`}
+                                >
+                                    <div className={`p-3 rounded-xl ${propertyType === prop.type ? 'bg-[var(--vibrant-teal)] text-white' : 'bg-[var(--surface-container)] text-[var(--on-surface-variant)]'}`}>
+                                        <prop.icon className="w-6 h-6" />
+                                    </div>
+                                    <span className={`text-xs font-bold ${propertyType === prop.type ? 'text-[var(--on-surface)]' : 'text-[var(--on-surface-variant)]'}`}>{prop.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Home Price */}
+                    <section className="card p-8">
+                        <div className="flex justify-between items-center mb-8">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Target Home Price</h3>
+                            <span className="text-3xl font-bold text-[var(--vibrant-teal)]">${targetAmount.toLocaleString()}</span>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="400000"
+                            max="1500000"
+                            step="10000"
+                            value={targetAmount}
+                            onChange={(e) => setTargetAmount(Number(e.target.value))}
+                            className="w-full mb-4"
+                        />
+                        <div className="flex justify-between text-[10px] font-bold text-[var(--on-surface-variant)] uppercase tracking-widest opacity-60">
+                            <span>$400k</span>
+                            <span>$1.5M+</span>
+                        </div>
+                    </section>
+
+                    {/* Down Payment Strategy */}
+                    <section className="card p-8 space-y-8">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Down Payment Strategy</h3>
+                        <div className="flex p-1 bg-[var(--surface-container-low)] rounded-xl w-fit">
+                            {(['5% CMHC Insured', '20% Conventional', 'Custom Amount'] as const).map((s) => (
+                                <button
+                                    key={s}
+                                    onClick={() => {
+                                        if (s.includes('5%')) { setDpStrategy('5%'); setSavings(targetAmount * 0.05); }
+                                        else if (s.includes('20%')) { setDpStrategy('20%'); setSavings(targetAmount * 0.2); }
+                                        else setDpStrategy('custom');
+                                    }}
+                                    className={`px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                                        (s.includes('5%') && dpStrategy === '5%') || 
+                                        (s.includes('20%') && dpStrategy === '20%') || 
+                                        (s.includes('Custom') && dpStrategy === 'custom')
+                                            ? 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)] shadow-sm' 
+                                            : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'
+                                    }`}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Percentage (%)</label>
+                                <div className="relative">
+                                    <input 
+                                        type="number" 
+                                        value={((savings / targetAmount) * 100).toFixed(2)}
+                                        readOnly
+                                        className="w-full bg-[var(--surface-container-low)] border-none rounded-xl py-4 px-6 text-sm font-bold"
+                                    />
+                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[var(--on-surface-variant)] font-bold">%</span>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Amount ($)</label>
+                                <div className="relative">
+                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--on-surface-variant)] font-bold">$</span>
+                                    <input 
+                                        type="text" 
+                                        value={savings.toLocaleString()}
+                                        readOnly
+                                        className="w-full bg-[var(--surface-container-low)] border-none rounded-xl py-4 px-10 text-sm font-bold"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {cmhcInsurance.insuranceAmount > 0 && (
+                            <div className="p-6 rounded-2xl bg-[var(--surface-container)] border-none flex items-start gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                                <div className="p-2 bg-white rounded-lg text-[var(--vibrant-teal)] shadow-sm">
+                                    <Info className="w-5 h-5" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h4 className="text-sm font-black text-[var(--on-surface)]">CMHC Insurance Required</h4>
+                                    <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
+                                        Down payments under 20% require mortgage default insurance. A premium of <span className="text-[var(--on-surface)] font-bold">${cmhcInsurance.insuranceAmount.toLocaleString()}</span> ({(cmhcInsurance.premium * 100).toFixed(2)}%) will be added to your mortgage principal.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </section>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Horizon */}
+                        <section className="card p-8">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Purchase Horizon</h3>
+                                <span className="text-xl font-bold text-[var(--vibrant-teal)]">{(months / 12).toFixed(0)} Years</span>
+                            </div>
+                            <input 
+                                type="range" 
+                                min="12"
+                                max="120"
+                                step="12"
+                                value={months}
+                                onChange={(e) => setMonths(Number(e.target.value))}
+                                className="w-full mb-4"
+                            />
+                            <div className="flex justify-between text-[10px] font-bold text-[var(--on-surface-variant)] uppercase tracking-widest opacity-60">
+                                <span>1 Yr</span>
+                                <span>10 Yrs</span>
+                            </div>
+                        </section>
+
+                        {/* Frequency */}
+                        <section className="card p-8">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-6">Saving Frequency</h3>
+                            <div className="flex p-1 bg-[var(--surface-container-low)] rounded-xl">
+                                {(['bi-weekly', 'monthly'] as PayFrequency[]).map((f) => (
+                                    <button
+                                        key={f}
+                                        onClick={() => setPayFreq(f)}
+                                        className={`flex-1 py-3 rounded-lg text-xs font-bold capitalize transition-all ${
+                                            payFreq === f ? 'bg-white shadow-sm text-[var(--on-surface)]' : 'text-[var(--on-surface-variant)]'
+                                        }`}
+                                    >
+                                        {f}
+                                    </button>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                {/* Sidebar Summary */}
+                <div className="xl:col-span-4 space-y-8">
+                    <div className="card p-8 bg-white sticky top-28 border-2 border-[var(--vibrant-teal)]/10 shadow-lg">
+                        <h2 className="headline-md mb-8">Goal Summary</h2>
+                        
+                        <div className="space-y-6 mb-10">
+                            <div className="space-y-1">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Target Down Payment ({(savings / targetAmount * 100).toFixed(0)}%)</div>
+                                <div className="text-4xl font-bold text-[var(--on-surface)]">${savings.toLocaleString()}</div>
+                            </div>
+
+                            <div className="h-px bg-[var(--outline-variant)] opacity-30" />
+
+                            <div className="space-y-4">
+                                <div className="flex justify-between text-sm font-medium text-[var(--on-surface-variant)]">
+                                    <span>Estimated Closing Costs</span>
+                                    <span className="font-bold text-[var(--on-surface)]">${(targetAmount * 0.015).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between text-sm font-medium text-[var(--on-surface-variant)]">
+                                    <span>CMHC Premium</span>
+                                    <span className="font-bold text-[var(--on-surface)]">${cmhcInsurance.insuranceAmount.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t border-[var(--outline-variant)] border-dashed">
+                                    <span className="text-sm font-black uppercase tracking-tight">Total Cash Required</span>
+                                    <span className="text-xl font-black text-[var(--emerald)]">${(savings + targetAmount * 0.015).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 rounded-[2rem] bg-[#86f2e4] bg-opacity-40 text-center space-y-2 mb-8 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-20 rounded-full -mr-12 -mt-12 blur-2xl" />
+                            <div className="text-[10px] font-black uppercase tracking-widest text-[#006f66]">Bi-Weekly Savings Required</div>
+                            <div className="text-4xl font-black text-[#006f66]">${biWeeklySavings.toLocaleString()}</div>
+                            <div className="text-[10px] font-bold text-[#006f66] opacity-60">for the next {(months / 12).toFixed(0)} years</div>
+                        </div>
+
+                        <button 
+                            onClick={handleContinue}
+                            className="w-full btn btn-secondary py-5 text-lg shadow-xl shadow-[var(--vibrant-teal)]/20 group"
+                        >
+                            Continue to Allocation
+                            <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                        </button>
+                    </div>
+
+                    <div className="p-8 rounded-[2rem] bg-white border border-[var(--outline-variant)] flex gap-4">
+                        <div className="p-3 bg-[var(--surface-container-low)] rounded-2xl text-[var(--vibrant-teal)]">
+                            <Zap className="w-6 h-6" />
+                        </div>
+                        <div className="space-y-1">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface)]">Pro Tip: Leverage the FHSA</h4>
+                            <p className="text-[10px] text-[var(--on-surface-variant)] leading-relaxed font-medium">
+                                Maximize your First Home Savings Account (FHSA). Contributions are tax-deductible, and withdrawals for your first home are tax-free. You can contribute up to $8,000 annually.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                <div className="xl:col-span-2 space-y-8">
-                    <div className="card p-8">
-                        <h3 className="headline-md mb-6">Which property type are you targeting?</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {properties.map((prop) => (
-                                <button
-                                    key={prop.type}
-                                    onClick={() => handlePropertySelect(prop.type)}
-                                    className={`p-6 rounded-2xl border-2 text-left transition-all duration-300 flex items-start gap-4 group ${
-                                        propertyType === prop.type 
-                                            ? 'border-[var(--secondary)] bg-[var(--secondary-container)] bg-opacity-20' 
-                                            : 'border-[var(--outline-variant)] hover:border-[var(--secondary)] hover:bg-[var(--surface-container-low)]'
-                                    }`}
-                                >
-                                    <div className={`p-3 rounded-xl transition-colors ${propertyType === prop.type ? 'bg-[var(--secondary)] text-white' : 'bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] group-hover:bg-[var(--secondary-container)]'}`}>
-                                        <prop.icon className="w-6 h-6" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="text-sm font-bold">{prop.label}</div>
-                                        <div className="text-xs text-[var(--on-surface-variant)]">{prop.desc}</div>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="card p-8 space-y-8">
-                        <h3 className="headline-md">Goal Configuration</h3>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                                <label className="label-md font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Primary Location</label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--on-surface-variant)]" />
-                                    <input 
-                                        type="text" 
-                                        value={location}
-                                        onChange={(e) => setLocation(e.target.value)}
-                                        className="w-full bg-[var(--surface-container-low)] border-none rounded-xl py-4 pl-12 pr-4 text-sm font-bold"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                <label className="label-md font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Savings Cadence</label>
-                                <div className="flex p-1 bg-[var(--surface-container-low)] rounded-xl">
-                                    {(['monthly', 'semi-monthly', 'bi-weekly'] as PayFrequency[]).map((freq) => (
-                                        <button
-                                            key={freq}
-                                            onClick={() => handleFrequencySelect(freq)}
-                                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${payFreq === freq ? 'bg-white shadow-sm text-[var(--secondary)]' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}
-                                        >
-                                            {freq}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="flex justify-between items-end">
-                                <label className="label-md font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Current Downpayment</label>
-                                <span className="headline-md text-xl">${savings.toLocaleString()}</span>
-                            </div>
-                            <input 
-                                type="range" 
-                                min="10000"
-                                max="200000"
-                                step="5000"
-                                value={savings}
-                                onChange={(e) => setSavings(Number(e.target.value))}
-                                className="w-full h-2 bg-[var(--outline-variant)] rounded-full appearance-none cursor-pointer accent-[var(--secondary)]"
-                            />
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="flex justify-between items-end">
-                                <label className="label-md font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Horizon (Months)</label>
-                                <span className="headline-md text-xl">{months} Months</span>
-                            </div>
-                            <input 
-                                type="range" 
-                                min="6"
-                                max="60"
-                                step="6"
-                                value={months}
-                                onChange={(e) => setMonths(Number(e.target.value))}
-                                className="w-full h-2 bg-[var(--outline-variant)] rounded-full appearance-none cursor-pointer accent-[var(--secondary)]"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="xl:col-span-1 space-y-8 animate-in slide-in-from-right-4 duration-500">
-                    <div className="card p-8 bg-white border-2 border-[var(--secondary)] relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--secondary-container)] opacity-20 blur-3xl -mr-16 -mt-16"></div>
-                        <div className="relative z-10 space-y-8">
-                            <div>
-                                <div className="label-md text-[var(--on-surface-variant)] mb-2 uppercase tracking-widest font-bold">Goal Target</div>
-                                <h3 className="headline-lg text-[var(--on-surface)]">${targetAmount.toLocaleString()}</h3>
-                                <p className="text-xs text-[var(--on-surface-variant)] font-bold mt-1 uppercase tracking-widest italic">{propertyType} Property • {location}</p>
-                            </div>
-
-                            <div className="space-y-6 border-y border-[var(--outline-variant)] py-8">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--on-surface-variant)] font-medium">Min. Downpayment</span>
-                                    <span className="text-sm font-black">${minDownpayment.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--on-surface-variant)] font-medium">CMHC Insurance</span>
-                                    <span className={`text-sm font-black ${cmhcInsurance.insuranceAmount > 0 ? 'text-red-500' : 'text-[var(--secondary)]'}`}>
-                                        {cmhcInsurance.insuranceAmount > 0 ? `$${cmhcInsurance.insuranceAmount.toLocaleString()}` : 'Not Required'}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                        <TrendingUp className="w-4 h-4 text-[var(--secondary)]" />
-                                        <span className="text-sm text-[var(--on-surface-variant)] font-medium">Est. Monthly Surplus</span>
-                                    </div>
-                                    <span className="text-sm font-black">${contribution.toLocaleString()}</span>
-                                </div>
-                            </div>
-
-                            <div className="p-4 rounded-xl bg-[var(--surface-container-low)] flex items-center gap-3">
-                                <Target className="w-5 h-5 text-[var(--secondary)]" />
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] leading-tight">
-                                    Targeting <span className="text-[var(--on-surface)]">{(savings / targetAmount * 100).toFixed(1)}%</span> of total value today.
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={handleContinue}
-                                className="w-full btn btn-primary py-5 text-lg group"
-                            >
-                                Build Profile
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div className="mt-12 flex justify-between items-center pt-8 border-t border-[var(--outline-variant)]">
+                <button 
+                    onClick={() => setStep(1)}
+                    className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] transition-all"
+                >
+                    <ChevronLeft className="w-4 h-4" /> Back to Cash Flow
+                </button>
             </div>
         </div>
     );
