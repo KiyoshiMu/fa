@@ -32,6 +32,64 @@ interface Question {
   options: QuestionOption[];
 }
 
+const PortfolioChart: React.FC<{ data: number[] }> = ({ data }) => {
+    const width = 200;
+    const height = 100;
+    const margin = { top: 10, right: 5, bottom: 20, left: 25 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    
+    const maxVal = 30;
+    const minVal = -30;
+    const range = maxVal - minVal;
+    
+    const getY = (val: number) => margin.top + chartHeight - ((val - minVal) / range) * chartHeight;
+    const zeroY = getY(0);
+    
+    return (
+        <div className="bg-white/50 p-3 rounded-xl border border-[var(--outline-variant)] mt-4">
+            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+                {/* Axes */}
+                <line x1={margin.left} y1={margin.top} x2={margin.left} y2={margin.top + chartHeight} className="stroke-[var(--on-surface-variant)] stroke-1 opacity-30" />
+                <line x1={margin.left} y1={zeroY} x2={width - margin.right} y2={zeroY} className="stroke-[var(--on-surface-variant)] stroke-1 opacity-30" />
+                
+                {/* Labels */}
+                <text x={margin.left - 5} y={getY(20)} className="text-[6px] fill-[var(--on-surface-variant)] opacity-60" textAnchor="end">20%</text>
+                <text x={margin.left - 5} y={zeroY} className="text-[6px] fill-[var(--on-surface-variant)] opacity-60" textAnchor="end">0%</text>
+                <text x={margin.left - 5} y={getY(-20)} className="text-[6px] fill-[var(--on-surface-variant)] opacity-60" textAnchor="end">-20%</text>
+                <text x={width / 2 + margin.left / 2} y={height - 2} className="text-[6px] fill-[var(--on-surface-variant)] font-bold opacity-40" textAnchor="middle">10 Year History</text>
+
+                {/* Bars */}
+                {data.map((val, i) => {
+                    const barWidth = chartWidth / data.length - 2;
+                    const x = margin.left + i * (chartWidth / data.length) + 1;
+                    const h = Math.abs(getY(val) - zeroY);
+                    const y = val > 0 ? getY(val) : zeroY;
+                    
+                    return (
+                        <rect
+                            key={i}
+                            x={x}
+                            y={y}
+                            width={barWidth}
+                            height={h}
+                            className={`${val > 0 ? 'fill-[var(--vibrant-teal)]' : 'fill-red-400'} opacity-80`}
+                            rx="1"
+                        />
+                    );
+                })}
+            </svg>
+        </div>
+    );
+};
+
+const PORTFOLIO_DATA: Record<string, number[]> = {
+    'Portfolio A': [2, 3, 2, 2, 3, 2, 2, 3, 3, 2],
+    'Portfolio B': [5, -3, -4, 8, 4, 1, 6, 4, -5, 4],
+    'Portfolio C': [12, -7, -10, 18, 14, 4, 12, 8, -15, 12],
+    'Portfolio D': [22, -12, -18, 28, 21, -8, 22, 30, -25, 20],
+};
+
 const QUESTIONS: Question[] = [
   { id: 'timeHorizon', type: 'select', label: 'Time Horizon', text: 'When do you plan to reach this goal?', linked: true, options: [
       { id: 'a', label: '< 1 year' },
@@ -41,26 +99,19 @@ const QUESTIONS: Question[] = [
       { id: 'e', label: '10+ years' },
   ]},
   { id: 'knowledge', type: 'select', label: 'Investment Knowledge', text: 'How would you describe your investment knowledge?', options: [
-      { id: 'a', label: 'Novice', desc: 'Very little experience with investments.' },
-      { id: 'b', label: 'Basic', desc: 'Some understanding of stocks and bonds.' },
-      { id: 'c', label: 'Average', desc: 'Regular investor with decent knowledge.' },
-      { id: 'd', label: 'Above Average', desc: 'Confident in managing complex portfolios.' },
-      { id: 'e', label: 'Advanced', desc: 'Expert level knowledge and experience.' },
+      { id: 'a', label: 'Novice' },
+      { id: 'b', label: 'Basic' },
+      { id: 'c', label: 'Average' },
+      { id: 'd', label: 'Above Average' },
+      { id: 'e', label: 'Advanced' },
   ]},
   { id: 'objectives', type: 'select', label: 'Primary Goal', text: 'What is your primary goal for this investment?', options: [
-      { id: 'a', label: 'Safety', desc: 'Protect principal at all costs.' },
-      { id: 'b', label: 'Income', desc: 'Generate regular payments from portfolio.' },
-      { id: 'c', label: 'Balanced', desc: 'Mix of income and long-term growth.' },
-      { id: 'd', label: 'Growth', desc: 'Maximize long-term capital gains.' },
+      { id: 'a', label: 'Safety (Protect principal)' },
+      { id: 'b', label: 'Income (Regular payments)' },
+      { id: 'c', label: 'Balanced (Income & Growth)' },
+      { id: 'd', label: 'Growth (Max long-term gain)' },
   ]},
-  { id: 'q4Points', type: 'points', label: 'Investment Experience', text: 'How many years of experience do you have with stock market investments?', options: [
-      { id: 'a', label: '0 - 1 years', points: 0 },
-      { id: 'b', label: '1 - 3 years', points: 3 },
-      { id: 'c', label: '3 - 5 years', points: 5 },
-      { id: 'd', label: '5 - 10 years', points: 7 },
-      { id: 'e', label: '10+ years', points: 10 },
-  ]},
-  { id: 'q5Points', type: 'points', label: 'Annual Income', text: 'What is your approximate annual net income?', linked: true, options: [
+  { id: 'annualIncome', type: 'points', label: 'Annual Income', text: 'What is your approximate annual net income?', linked: true, options: [
       { id: 'a', label: '< $20k', points: 0 },
       { id: 'b', label: '$20k - $50k', points: 2 },
       { id: 'c', label: '$50k - $100k', points: 4 },
@@ -68,66 +119,76 @@ const QUESTIONS: Question[] = [
       { id: 'e', label: '$150k - $200k', points: 7 },
       { id: 'f', label: '> $200k', points: 10 },
   ]},
-  { id: 'q6Points', type: 'points', label: 'Income Stability', text: 'How stable do you consider your primary source of income?', linked: true, options: [
+  { id: 'incomeStability', type: 'points', label: 'Income Stability', text: 'How stable do you consider your primary source of income?', linked: true, options: [
       { id: 'a', label: 'Unstable / Seasonal', points: 1 },
       { id: 'b', label: 'Somewhat Stable', points: 4 },
       { id: 'c', label: 'Stable', points: 6 },
       { id: 'd', label: 'Very Stable', points: 8 },
   ]},
-  { id: 'q7Points', type: 'points', label: 'Net Worth', text: 'Excluding your primary residence, what is your total net worth?', options: [
-      { id: 'a', label: '< $50k', points: 0 },
-      { id: 'b', label: '$50k - $200k', points: 3 },
-      { id: 'c', label: '$200k - $500k', points: 6 },
-      { id: 'd', label: '$500k - $1M', points: 8 },
-      { id: 'e', label: '> $1M', points: 10 },
+  { id: 'financialSituation', type: 'points', label: 'Financial Situation', text: 'Which best describes your current financial situation?', options: [
+      { id: 'a', label: 'No savings, high debt', points: 0 },
+      { id: 'b', label: 'Little savings, some debt', points: 2 },
+      { id: 'c', label: 'Some savings, some debt', points: 5 },
+      { id: 'd', label: 'Some savings, little debt', points: 7 },
+      { id: 'e', label: 'Significant savings, little debt', points: 10 },
   ]},
-  { id: 'q8Points', type: 'points', label: 'Portfolio Concentration', text: 'What percentage of your total investable assets will this investment represent?', linked: true, options: [
+  { id: 'netWorth', type: 'points', label: 'Net Worth', text: 'What is your approximate total net worth?', options: [
+      { id: 'a', label: '< $50k', points: 0 },
+      { id: 'b', label: '$50-100k', points: 2 },
+      { id: 'c', label: '$100-250k', points: 4 },
+      { id: 'd', label: '$250-500k', points: 6 },
+      { id: 'e', label: '$500k-1M', points: 8 },
+      { id: 'f', label: '$1-2M', points: 10 },
+      { id: 'g', label: '> $2M', points: 12 },
+  ]},
+  { id: 'concentration', type: 'points', label: 'Portfolio Concentration', text: 'What percentage of your total investable assets will this investment represent?', linked: true, options: [
       { id: 'a', label: '> 75%', points: 2 },
       { id: 'b', label: '50% - 75%', points: 4 },
       { id: 'c', label: '25% - 50%', points: 5 },
       { id: 'd', label: '< 25%', points: 10 },
   ]},
-  { id: 'q9Points', type: 'points', label: 'Liquid Assets', text: 'If you had an emergency, how long could you sustain your lifestyle with your current liquid assets?', options: [
-      { id: 'a', label: '< 1 month', points: 0 },
-      { id: 'b', label: '1 - 3 months', points: 3 },
-      { id: 'c', label: '3 - 6 months', points: 6 },
-      { id: 'd', label: '6 - 12 months', points: 8 },
-      { id: 'e', label: '> 12 months', points: 10 },
+  { id: 'ageGroup', type: 'points', label: 'Age Group', text: 'What is your age group?', options: [
+      { id: 'a', label: 'Under 35', points: 20 },
+      { id: 'b', label: '35-54', points: 8 },
+      { id: 'c', label: '55-64', points: 3 },
+      { id: 'd', label: '65+', points: 1 },
   ]},
-  { id: 'q10Points', type: 'points', label: 'Risk Attitude', text: 'How would you describe your general attitude toward financial risk?', options: [
+  { id: 'riskTolerance', type: 'points', label: 'Risk Attitude', text: 'How would you describe your attitude toward risk?', options: [
       { id: 'a', label: 'Very Conservative', points: 0 },
       { id: 'b', label: 'Conservative', points: 4 },
       { id: 'c', label: 'Moderate', points: 6 },
       { id: 'd', label: 'Aggressive', points: 10 },
   ]},
-  { id: 'q11Points', type: 'points', label: 'Tolerable Loss', text: 'What is the maximum decline you could tolerate in your portfolio over a single year?', options: [
+  { id: 'tolerableLoss', type: 'points', label: 'Tolerable Loss', text: 'How much market decline can you tolerate for a year?', options: [
       { id: 'a', label: '0%', points: 0 },
-      { id: 'b', label: '-5%', points: 3 },
+      { id: 'b', label: '-3%', points: 3 },
       { id: 'c', label: '-10%', points: 6 },
       { id: 'd', label: '-20%', points: 8 },
       { id: 'e', label: '> -20%', points: 10 },
   ]},
-  { id: 'q12Points', type: 'points', label: 'Portfolio Volatility', text: 'Which of the following scenarios would you be most comfortable with over a 12-month period?', options: [
-      { id: 'a', label: 'Small gain (2%), no loss', points: 0 },
-      { id: 'b', label: 'Medium gain (5%), small loss (-2%)', points: 4 },
-      { id: 'c', label: 'Large gain (12%), medium loss (-8%)', points: 7 },
-      { id: 'd', label: 'Extreme gain (25%), extreme loss (-20%)', points: 10 },
+  { id: 'psychology', type: 'points', label: 'Psychology', text: 'Do you prioritize avoiding loss or achieving gains?', options: [
+      { id: 'a', label: 'Always avoid loss', points: 0 },
+      { id: 'b', label: 'Generally avoid loss', points: 3 },
+      { id: 'c', label: 'Generally achieve gains', points: 6 },
+      { id: 'd', label: 'Always achieve gains', points: 10 },
   ]},
-  { id: 'q13Points', type: 'points', label: 'Investment Decision', text: 'When making an investment decision, you are most concerned with:', options: [
-      { id: 'a', label: 'Potential for loss', points: 0 },
-      { id: 'b', label: 'Both loss and gain equally', points: 5 },
-      { id: 'c', label: 'Potential for gain', points: 10 },
+  { id: 'outcomeAcceptability', type: 'points', label: 'Outcome Acceptability', text: 'Which $1,000 investment outcome is most acceptable?', options: [
+      { id: 'a', label: '$0 to $200 gain', points: 0 },
+      { id: 'b', label: '-$200 to $500 gain/loss', points: 3 },
+      { id: 'c', label: '-$800 to $1,200 gain/loss', points: 6 },
+      { id: 'd', label: '-$2,000 to $2,500 gain/loss', points: 10 },
   ]},
-  { id: 'q14Points', type: 'points', label: 'Market Drop Reaction', text: 'How would you react to a 20% market drop in your portfolio over a short period?', options: [
-      { id: 'a', label: 'Sell everything immediately', desc: 'I prioritize preserving whatever capital is left over potential future recoveries.', points: 0 },
-      { id: 'b', label: 'Sell a portion to secure cash', desc: "I'd reduce exposure but keep some investments active to mitigate total loss.", points: 3 },
-      { id: 'c', label: 'Do nothing and wait', desc: 'I understand markets fluctuate and prefer to stick to the original long-term plan.', points: 5 },
-      { id: 'd', label: 'Buy more at a discount', desc: 'I see market drops as an opportunity to increase holdings at lower prices.', points: 10 },
+  { id: 'marketDrop', type: 'points', label: 'Market Drop Reaction', text: 'If the market drops 20%, what would you do?', options: [
+      { id: 'a', label: 'Sell all', points: 0 },
+      { id: 'b', label: 'Sell a portion', points: 3 },
+      { id: 'c', label: 'Hold', points: 5 },
+      { id: 'd', label: 'Buy more', points: 10 },
   ]},
-  { id: 'q15Points', type: 'points', label: 'Investment Philosophy', text: 'Do you believe that high returns always come with high risk?', options: [
-      { id: 'a', label: 'No, I want high returns with no risk', points: 0 },
-      { id: 'b', label: 'I accept some risk for some return', points: 5 },
-      { id: 'c', label: 'Yes, I fully accept risk for high returns', points: 10 },
+  { id: 'historicalComfort', type: 'points', label: 'Historical Comfort', text: 'Which historical portfolio volatility feels right?', options: [
+      { id: 'a', label: 'Portfolio A: Low volatility (Safety)', points: 0 },
+      { id: 'b', label: 'Portfolio B: Moderate volatility (Balanced growth)', points: 4 },
+      { id: 'c', label: 'Portfolio C: High volatility (Aggressive growth)', points: 6 },
+      { id: 'd', label: 'Portfolio D: Very high volatility (Maximum growth)', points: 10 },
   ]},
 ];
 
@@ -220,20 +281,20 @@ const InvestmentProfiler: React.FC = () => {
                 initial.timeHorizon = mapMonthsToTimeHorizon(state.goal.months);
             }
             
-            // Q5: Income
+            // Q4: Income
             if (state.cashFlow?.totalInflow) {
-                initial.q5Points = mapIncomeToPoints(state.cashFlow.totalInflow * 12);
+                initial.annualIncome = mapIncomeToPoints(state.cashFlow.totalInflow * 12);
             }
             
-            // Q6: Stability
+            // Q5: Stability
             if (state.payFrequency) {
-                initial.q6Points = mapStabilityToPoints(state.payFrequency);
+                initial.incomeStability = mapStabilityToPoints(state.payFrequency);
             }
             
             // Q8: Concentration
             const estimatedNetWorth = 500000; 
             if (state.goal?.targetAmount) {
-                initial.q8Points = mapConcentrationToPoints(state.goal.targetAmount, estimatedNetWorth);
+                initial.concentration = mapConcentrationToPoints(state.goal.targetAmount, estimatedNetWorth);
             }
             
             setProfilerAnswers(initial);
@@ -255,10 +316,10 @@ const InvestmentProfiler: React.FC = () => {
         };
 
         return {
-            endurance: getPoints(['q4Points', 'q5Points', 'q6Points', 'q7Points', 'q8Points', 'q9Points']),
-            offensiveness: getPoints(['q10Points', 'q14Points', 'q15Points']),
+            endurance: getPoints(['annualIncome', 'incomeStability', 'financialSituation', 'netWorth', 'concentration', 'ageGroup']),
+            offensiveness: getPoints(['riskTolerance', 'marketDrop', 'psychology']),
             adaptability: (['a', 'b', 'c', 'd', 'e'].indexOf(answers.knowledge || 'a') + 1) / 5,
-            decision: getPoints(['q11Points', 'q12Points', 'q13Points']),
+            decision: getPoints(['tolerableLoss', 'historicalComfort', 'outcomeAcceptability']),
             viability: (['a', 'b', 'c', 'd', 'e'].indexOf(answers.timeHorizon || 'a') + 1) / 5,
         };
     }, [answers]);
@@ -341,9 +402,12 @@ const InvestmentProfiler: React.FC = () => {
                                                 <div className="radio-circle mt-1 flex-shrink-0">
                                                     {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
                                                 </div>
-                                                <div className="space-y-1">
+                                                <div className="space-y-1 w-full">
                                                     <span className="text-sm font-bold text-[var(--on-surface)]">{opt.label}</span>
                                                     {opt.desc && <p className="text-xs text-[var(--on-surface-variant)] font-medium leading-relaxed">{opt.desc}</p>}
+                                                    {currentQ.id === 'historicalComfort' && (
+                                                        <PortfolioChart data={PORTFOLIO_DATA[opt.label.split(':')[0]] || []} />
+                                                    )}
                                                 </div>
                                             </div>
                                         </button>

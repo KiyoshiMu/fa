@@ -14,21 +14,21 @@ export type InvestmentProfile =
 export type ScoringPolicy = 'weighted' | 'conservative';
 
 export interface QuestionnaireAnswers {
-  timeHorizon: string; // 'a' | 'b' | 'c' | 'd' | 'e'
-  knowledge: string;   // 'a' | 'b' | 'c' | 'd' | 'e'
-  objectives: string; // 'a' | 'b' | 'c' | 'd'
-  q4Points: number;
-  q5Points: number;
-  q6Points: number;
-  q7Points: number;
-  q8Points: number;
-  q9Points: number;
-  q10Points: number;
-  q11Points: number;
-  q12Points: number;
-  q13Points: number;
-  q14Points: number;
-  q15Points: number;
+  timeHorizon: string;        // Q1 (Linked)
+  knowledge: string;         // Q2 (Visible)
+  objectives: string;        // Q3 (Visible)
+  annualIncome: number;      // Q4 (Linked)
+  incomeStability: number;   // Q5 (Linked)
+  financialSituation: number; // Q6 (Visible)
+  netWorth: number;          // Q7 (Visible)
+  concentration: number;     // Q8 (Linked)
+  ageGroup: number;          // Q9 (Visible)
+  riskTolerance: number;     // Q10 (Visible)
+  tolerableLoss: number;     // Q11 (Visible)
+  psychology: number;        // Q12 (Visible)
+  outcomeAcceptability: number; // Q13 (Visible)
+  marketDrop: number;        // Q14 (Visible)
+  historicalComfort: number; // Q15 (Visible)
 }
 
 const PROFILE_ORDER: InvestmentProfile[] = [
@@ -45,10 +45,10 @@ const PROFILE_ORDER: InvestmentProfile[] = [
  */
 const mapCapacityToProfileIdx = (points: number): number => {
   if (points < 11) return 0; // Safety
-  if (points <= 15) return 1; // Very Conservative
-  if (points <= 20) return 2; // Conservative
-  if (points <= 30) return 3; // Moderate
-  if (points <= 45) return 4; // Aggressive
+  if (points <= 20) return 1; // Very Conservative
+  if (points <= 30) return 2; // Conservative
+  if (points <= 40) return 3; // Moderate
+  if (points <= 55) return 4; // Aggressive
   return 5; // Very Aggressive
 };
 
@@ -56,11 +56,11 @@ const mapCapacityToProfileIdx = (points: number): number => {
  * Maps risk attitude points to a profile column index (0-5)
  */
 const mapAttitudeToProfileIdx = (points: number): number => {
-  if (points < 16) return 0; // Safety
+  if (points < 11) return 0; // Safety
   if (points <= 20) return 1; // Very Conservative
-  if (points <= 25) return 2; // Conservative
-  if (points <= 30) return 3; // Moderate
-  if (points <= 45) return 4; // Aggressive
+  if (points <= 30) return 2; // Conservative
+  if (points <= 40) return 3; // Moderate
+  if (points <= 50) return 4; // Aggressive
   return 5; // Very Aggressive
 };
 
@@ -99,8 +99,22 @@ export const calculateProfile = (
     mapQAtoProfileIdx(1, answers.timeHorizon),
     mapQAtoProfileIdx(2, answers.knowledge),
     mapQAtoProfileIdx(3, answers.objectives),
-    mapCapacityToProfileIdx(answers.q4Points + answers.q5Points + answers.q6Points + answers.q7Points + answers.q8Points + answers.q9Points),
-    mapAttitudeToProfileIdx(answers.q10Points + answers.q11Points + answers.q12Points + answers.q13Points + answers.q14Points + answers.q15Points)
+    mapCapacityToProfileIdx(
+      (answers.annualIncome || 0) + 
+      (answers.incomeStability || 0) + 
+      (answers.financialSituation || 0) + 
+      (answers.netWorth || 0) + 
+      (answers.concentration || 0) + 
+      (answers.ageGroup || 0)
+    ),
+    mapAttitudeToProfileIdx(
+      (answers.riskTolerance || 0) + 
+      (answers.tolerableLoss || 0) + 
+      (answers.psychology || 0) + 
+      (answers.outcomeAcceptability || 0) + 
+      (answers.marketDrop || 0) + 
+      (answers.historicalComfort || 0)
+    )
   ];
 
   let finalIdx: number;

@@ -23,7 +23,7 @@ import {
 
 const SolutionsHub: React.FC = () => {
     const { state, setStep } = useFinancial();
-    const [horizon, setHorizon] = useState(state.goal?.months ? Math.round(state.goal.months / 12) : 3);
+    const [horizonMonths, setHorizonMonths] = useState(state.goal?.months || 36);
     const [isChecked, setIsChecked] = useState([false, false, false]);
 
     const handleCheck = (index: number) => {
@@ -37,7 +37,16 @@ const SolutionsHub: React.FC = () => {
     const currentSavings = state.goal?.currentSavings || 25000;
     const annualRate = state.profile?.rate || 0.055;
     const monthlyRate = annualRate / 12;
-    const months = horizon * 12;
+    const months = horizonMonths;
+
+    const formatDuration = (totalMonths: number) => {
+        const years = Math.floor(totalMonths / 12);
+        const remainingMonths = totalMonths % 12;
+        
+        if (years === 0) return `${remainingMonths} Month${remainingMonths !== 1 ? 's' : ''}`;
+        if (remainingMonths === 0) return `${years} Year${years !== 1 ? 's' : ''}`;
+        return `${years} Year${years !== 1 ? 's' : ''}, ${remainingMonths} Month${remainingMonths !== 1 ? 's' : ''}`;
+    };
 
 
     const calculatePMT = (fv: number, pv: number, r: number, n: number) => {
@@ -135,9 +144,9 @@ const SolutionsHub: React.FC = () => {
                           Simulate your growth trajectory by adjusting your savings window.
                         </p>
                     </div>
-                    <div className="bg-[var(--secondary-container)]/20 text-[var(--on-secondary-container)] px-4 py-2 rounded-xl border border-[var(--secondary-container)]/30">
+                    <div className="bg-[var(--secondary-container)]/20 text-[var(--on-secondary-container)] px-4 py-2 rounded-xl border border-[var(--secondary-container)]/30 min-w-[140px]">
                         <span className="text-[10px] font-black uppercase tracking-widest block opacity-70">Current Horizon</span>
-                        <span className="text-sm font-black">{horizon} Years</span>
+                        <span className="text-sm font-black">{formatDuration(horizonMonths)}</span>
                     </div>
                 </div>
 
@@ -145,14 +154,14 @@ const SolutionsHub: React.FC = () => {
                     <input 
                         type="range" 
                         min="1" 
-                        max="10" 
+                        max="120" 
                         step="1"
-                        value={horizon}
-                        onChange={(e) => setHorizon(parseInt(e.target.value))}
+                        value={horizonMonths}
+                        onChange={(e) => setHorizonMonths(parseInt(e.target.value))}
                         className="w-full h-2 bg-[var(--surface-container)] rounded-full appearance-none cursor-pointer accent-[var(--vibrant-teal)]"
                     />
                     <div className="flex justify-between mt-4">
-                        <span className="text-[10px] font-bold text-[var(--on-surface-variant)]/40 uppercase">1 Year</span>
+                        <span className="text-[10px] font-bold text-[var(--on-surface-variant)]/40 uppercase">1 Month</span>
                         <span className="text-[10px] font-bold text-[var(--on-surface-variant)]/40 uppercase">10 Years</span>
                     </div>
                 </div>
@@ -194,7 +203,7 @@ const SolutionsHub: React.FC = () => {
                             <p className="text-[10px] font-medium text-[var(--on-surface-variant)] mt-2 leading-relaxed">
                                 {isFunded 
                                     ? `Great news! Your monthly surplus of $${Math.round(surplus).toLocaleString()} covers the necessary $${Math.round(monthlyTarget).toLocaleString()} contribution.`
-                                    : `You are short $${Math.round(Math.abs(gap)).toLocaleString()} per month. To hit your ${horizon * 12}-month goal, you need to increase your savings or adjust your timeline.`}
+                                    : `You are short $${Math.round(Math.abs(gap)).toLocaleString()} per month. To hit your ${horizonMonths}-month goal, you need to increase your savings or adjust your timeline.`}
                             </p>
                         </div>
 
