@@ -1,44 +1,83 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  Building2, 
-  Home,
-  Info,
-  ChevronRight,
-  ChevronLeft,
-  Zap
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+    Building2,
+    Home,
+    Info,
+    ChevronRight,
+    ChevronLeft,
+    Zap
 } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 import type { PropertyType, PayFrequency } from '../FinancialContext';
 import { calculateCMHC } from '../lib/mortgageUtils';
 
 const GoalOnboarding: React.FC = () => {
-    const { state, setGoal, setStep } = useFinancial();
-    
+    const { state, setGoal, setStep, setPayFrequency } = useFinancial();
+
     const [propertyType, setPropertyType] = useState<PropertyType>(state.goal?.propertyType || 'condo');
     const [targetAmount, setTargetAmount] = useState(state.goal?.targetAmount || 750000);
-    const [savings, setSavings] = useState(state.goal?.currentSavings || 37500);
+    const [savings, setSavings] = useState(state.goal?.desiredDownPayment || state.goal?.currentSavings || 37500);
+    const [initialSavings, setInitialSavings] = useState(state.goal?.currentSavings || 37500);
+
     const [months, setMonths] = useState(state.goal?.months || 36);
     const [payFreq, setPayFreq] = useState<PayFrequency>(state.payFrequency || 'bi-weekly');
     const [dpStrategy, setDpStrategy] = useState<'5%' | '20%' | 'custom'>(
         savings / targetAmount <= 0.05 ? '5%' : savings / targetAmount >= 0.2 ? '20%' : 'custom'
     );
 
+
+    // Sync local changes to global state for persistence
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            setGoal({
+                type: state.goal?.type || 'Home',
+                targetAmount,
+                currentSavings: initialSavings,
+                desiredDownPayment: savings,
+                months,
+                hasFHSAOrTFSA: state.goal?.hasFHSAOrTFSA ?? false,
+                contribution: state.goal?.contribution ?? 0,
+                propertyType,
+            });
+            setPayFrequency(payFreq);
+        }, 1000); // 1s debounce to avoid excessive storage writes
+        return () => clearTimeout(timeout);
+    }, [propertyType, targetAmount, savings, months, payFreq, setGoal, setPayFrequency, state.goal?.type, state.goal?.hasFHSAOrTFSA, state.goal?.contribution, initialSavings]);
+
+
+
     const cmhcInsurance = useMemo(() => calculateCMHC(targetAmount, savings), [targetAmount, savings]);
-    
-    // Simple Bi-weekly savings calc for display
+
+    // Dynamic savings calc for display
     const savingsGoal = targetAmount * (dpStrategy === '5%' ? 0.05 : dpStrategy === '20%' ? 0.2 : (savings / targetAmount));
-    const biWeeklySavings = Math.max(0, Math.round((savingsGoal - (state.goal?.currentSavings ?? 0)) / (months * 2.166)));
+    const closingCosts = targetAmount * 0.015;
+    const totalCashNeeded = savingsGoal + closingCosts;
+    const frequencyMultiplier = payFreq === 'monthly' ? 1 : 2.166;
+    const requiredSavings = Math.max(0, Math.round((totalCashNeeded - initialSavings) / (months * frequencyMultiplier)));
+
+
+
+
+    const updateGoal = (updates: Partial<AppState['goal'] & { payFrequency: PayFrequency }>) => {
+        const newGoal = {
+            type: state.goal?.type || 'Home',
+            targetAmount: updates.targetAmount ?? targetAmount,
+            currentSavings: updates.currentSavings ?? savings,
+            months: updates.months ?? months,
+            hasFHSAOrTFSA: state.goal?.hasFHSAOrTFSA ?? false,
+            contribution: state.goal?.contribution ?? 0,
+            propertyType: updates.propertyType ?? propertyType,
+            ...updates
+        };
+        setGoal(newGoal as AppState['goal']);
+        if (updates.payFrequency) setPayFrequency(updates.payFrequency);
+    };
 
     const handleContinue = () => {
-        setGoal({
-            ...state.goal!,
-            propertyType,
-            targetAmount,
-            currentSavings: savings,
-            months,
-        });
+        updateGoal({ propertyType, targetAmount, currentSavings: savings, months });
         setStep(3);
     };
+
 
     const properties: { type: PropertyType; icon: React.ElementType; label: string }[] = [
         { type: 'condo', icon: Building2, label: 'Condo' },
@@ -70,11 +109,10 @@ const GoalOnboarding: React.FC = () => {
                                 <button
                                     key={prop.type}
                                     onClick={() => setPropertyType(prop.type)}
-                                    className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-4 transition-all duration-300 ${
-                                        propertyType === prop.type 
-                                            ? 'border-[var(--vibrant-teal)] bg-[var(--surface-container-low)] shadow-sm' 
+                                    className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-4 transition-all duration-300 ${propertyType === prop.type
+                                            ? 'border-[var(--vibrant-teal)] bg-[var(--surface-container-low)] shadow-sm'
                                             : 'border-[var(--outline-variant)] bg-white hover:border-[var(--vibrant-teal)]/50'
-                                    }`}
+                                        }`}
                                 >
                                     <div className={`p-3 rounded-xl ${propertyType === prop.type ? 'bg-[var(--vibrant-teal)] text-white' : 'bg-[var(--surface-container)] text-[var(--on-surface-variant)]'}`}>
                                         <prop.icon className="w-6 h-6" />
@@ -87,12 +125,27 @@ const GoalOnboarding: React.FC = () => {
 
                     {/* Home Price */}
                     <section className="card p-8">
-                        <div className="flex justify-between items-center mb-8">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Current Savings</h3>
+                            <span className="text-xl font-bold text-[var(--on-surface-variant)]">${initialSavings.toLocaleString()}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max={targetAmount * 0.2}
+                            step="1000"
+                            value={initialSavings}
+                            onChange={(e) => setInitialSavings(Number(e.target.value))}
+                            className="w-full mb-10"
+                        />
+
+                        <div className="flex justify-between items-center mb-6">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Target Home Price</h3>
                             <span className="text-3xl font-bold text-[var(--vibrant-teal)]">${targetAmount.toLocaleString()}</span>
                         </div>
-                        <input 
-                            type="range" 
+
+                        <input
+                            type="range"
                             min="400000"
                             max="1500000"
                             step="10000"
@@ -118,13 +171,12 @@ const GoalOnboarding: React.FC = () => {
                                         else if (s.includes('20%')) { setDpStrategy('20%'); setSavings(targetAmount * 0.2); }
                                         else setDpStrategy('custom');
                                     }}
-                                    className={`px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                                        (s.includes('5%') && dpStrategy === '5%') || 
-                                        (s.includes('20%') && dpStrategy === '20%') || 
-                                        (s.includes('Custom') && dpStrategy === 'custom')
-                                            ? 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)] shadow-sm' 
+                                    className={`px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${(s.includes('5%') && dpStrategy === '5%') ||
+                                            (s.includes('20%') && dpStrategy === '20%') ||
+                                            (s.includes('Custom') && dpStrategy === 'custom')
+                                            ? 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)] shadow-sm'
                                             : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'
-                                    }`}
+                                        }`}
                                 >
                                     {s}
                                 </button>
@@ -135,8 +187,8 @@ const GoalOnboarding: React.FC = () => {
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Percentage (%)</label>
                                 <div className="relative">
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={((savings / targetAmount) * 100).toFixed(2)}
                                         readOnly
                                         className="w-full bg-[var(--surface-container-low)] border-none rounded-xl py-4 px-6 text-sm font-bold"
@@ -148,8 +200,8 @@ const GoalOnboarding: React.FC = () => {
                                 <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Amount ($)</label>
                                 <div className="relative">
                                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--on-surface-variant)] font-bold">$</span>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={savings.toLocaleString()}
                                         readOnly
                                         className="w-full bg-[var(--surface-container-low)] border-none rounded-xl py-4 px-10 text-sm font-bold"
@@ -180,8 +232,8 @@ const GoalOnboarding: React.FC = () => {
                                 <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Purchase Horizon</h3>
                                 <span className="text-xl font-bold text-[var(--vibrant-teal)]">{(months / 12).toFixed(0)} Years</span>
                             </div>
-                            <input 
-                                type="range" 
+                            <input
+                                type="range"
                                 min="12"
                                 max="120"
                                 step="12"
@@ -203,9 +255,8 @@ const GoalOnboarding: React.FC = () => {
                                     <button
                                         key={f}
                                         onClick={() => setPayFreq(f)}
-                                        className={`flex-1 py-3 rounded-lg text-xs font-bold capitalize transition-all ${
-                                            payFreq === f ? 'bg-white shadow-sm text-[var(--on-surface)]' : 'text-[var(--on-surface-variant)]'
-                                        }`}
+                                        className={`flex-1 py-3 rounded-lg text-xs font-bold capitalize transition-all ${payFreq === f ? 'bg-white shadow-sm text-[var(--on-surface)]' : 'text-[var(--on-surface-variant)]'
+                                            }`}
                                     >
                                         {f}
                                     </button>
@@ -219,7 +270,7 @@ const GoalOnboarding: React.FC = () => {
                 <div className="xl:col-span-4 space-y-8">
                     <div className="card p-8 bg-white sticky top-28 border-2 border-[var(--vibrant-teal)]/10 shadow-lg">
                         <h2 className="headline-md mb-8">Goal Summary</h2>
-                        
+
                         <div className="space-y-6 mb-10">
                             <div className="space-y-1">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Target Down Payment ({(savings / targetAmount * 100).toFixed(0)}%)</div>
@@ -246,12 +297,13 @@ const GoalOnboarding: React.FC = () => {
 
                         <div className="p-6 rounded-[2rem] bg-[#86f2e4] bg-opacity-40 text-center space-y-2 mb-8 relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-20 rounded-full -mr-12 -mt-12 blur-2xl" />
-                            <div className="text-[10px] font-black uppercase tracking-widest text-[#006f66]">Bi-Weekly Savings Required</div>
-                            <div className="text-4xl font-black text-[#006f66]">${biWeeklySavings.toLocaleString()}</div>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-[#006f66]">{payFreq} Savings Required</div>
+                            <div className="text-4xl font-black text-[#006f66]">${requiredSavings.toLocaleString()}</div>
+
                             <div className="text-[10px] font-bold text-[#006f66] opacity-60">for the next {(months / 12).toFixed(0)} years</div>
                         </div>
 
-                        <button 
+                        <button
                             onClick={handleContinue}
                             className="w-full btn btn-secondary py-5 text-lg shadow-xl shadow-[var(--vibrant-teal)]/20 group"
                         >
@@ -267,7 +319,8 @@ const GoalOnboarding: React.FC = () => {
                         <div className="space-y-1">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface)]">Pro Tip: Leverage the FHSA</h4>
                             <p className="text-[10px] text-[var(--on-surface-variant)] leading-relaxed font-medium">
-                                Maximize your First Home Savings Account (FHSA). Contributions are tax-deductible, and withdrawals for your first home are tax-free. You can contribute up to $8,000 annually.
+                                If you’re saving for your first home in Canada, we strongly recommend opening a First Home Saving Account (FHSA), as it offers tax-deductible contributions and tax-free growth for qualifying home purchases.
+                                You can contribute up to $8,000 annually.
                             </p>
                         </div>
                     </div>
@@ -275,7 +328,7 @@ const GoalOnboarding: React.FC = () => {
             </div>
 
             <div className="mt-12 flex justify-between items-center pt-8 border-t border-[var(--outline-variant)]">
-                <button 
+                <button
                     onClick={() => setStep(1)}
                     className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] transition-all"
                 >

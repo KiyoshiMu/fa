@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { QuestionnaireAnswers } from '../lib/api';
 import { calculateInvestmentProfile } from '../lib/api';
 import { 
@@ -206,46 +206,46 @@ const RadarChart: React.FC<{ data: Record<string, number> }> = ({ data }) => {
 };
 
 const InvestmentProfiler: React.FC = () => {
-    const { state, setProfile: setGlobalProfile, setStep } = useFinancial();
-    
-    // Pre-fill linked questions based on state
-    const [answers, setAnswers] = useState<Partial<QuestionnaireAnswers>>(() => {
-        const initial: Partial<QuestionnaireAnswers> = {};
-        
-        // Q1: Time Horizon
-        if (state.goal?.months) {
-            initial.timeHorizon = mapMonthsToTimeHorizon(state.goal.months);
-        }
-        
-        // Q5: Income
-        if (state.cashFlow?.totalInflow) {
-            initial.q5Points = mapIncomeToPoints(state.cashFlow.totalInflow * 12);
-        }
-        
-        // Q6: Stability
-        if (state.payFrequency) {
-            initial.q6Points = mapStabilityToPoints(state.payFrequency);
-        }
-        
-        // Q8: Concentration
-        // Note: netWorth is not in state yet, but we'll use a placeholder or add it later
-        // For now, let's assume 1M if not provided to avoid crash, or just skip
-        const estimatedNetWorth = 500000; 
-        if (state.goal?.targetAmount) {
-            initial.q8Points = mapConcentrationToPoints(state.goal.targetAmount, estimatedNetWorth);
-        }
-        
-        return initial;
-    });
+    const { state, setProfile: setGlobalProfile, setStep, setProfilerAnswers, setProfilerStep } = useFinancial();
+    const answers = state.profilerAnswers;
+    const currentStep = state.profilerStep;
 
-    const [currentStep, setCurrentStep] = useState(0);
+    // Pre-fill linked questions based on state if not already answered
+    useEffect(() => {
+        if (Object.keys(answers).length === 0) {
+            const initial: Partial<QuestionnaireAnswers> = {};
+            
+            // Q1: Time Horizon
+            if (state.goal?.months) {
+                initial.timeHorizon = mapMonthsToTimeHorizon(state.goal.months);
+            }
+            
+            // Q5: Income
+            if (state.cashFlow?.totalInflow) {
+                initial.q5Points = mapIncomeToPoints(state.cashFlow.totalInflow * 12);
+            }
+            
+            // Q6: Stability
+            if (state.payFrequency) {
+                initial.q6Points = mapStabilityToPoints(state.payFrequency);
+            }
+            
+            // Q8: Concentration
+            const estimatedNetWorth = 500000; 
+            if (state.goal?.targetAmount) {
+                initial.q8Points = mapConcentrationToPoints(state.goal.targetAmount, estimatedNetWorth);
+            }
+            
+            setProfilerAnswers(initial);
+        }
+    }, [state.goal, state.cashFlow, state.payFrequency, answers, setProfilerAnswers]);
+
     const [loading, setLoading] = useState(false);
 
     const visibleQuestions = useMemo(() => QUESTIONS.filter(q => !q.linked), []);
     const currentQ = visibleQuestions[currentStep];
 
     const radarData = useMemo(() => {
-        // Dynamic radar calculation based on answers
         const getPoints = (ids: string[]) => {
             const sum = ids.reduce((acc, id) => {
                 const val = answers[id as keyof QuestionnaireAnswers];
@@ -264,7 +264,7 @@ const InvestmentProfiler: React.FC = () => {
     }, [answers]);
 
     const handleAnswer = (id: string, value: string | number) => {
-        setAnswers(prev => ({ ...prev, [id]: value }));
+        setProfilerAnswers({ ...answers, [id]: value });
         // Automatic progression for a smoother "wizard" experience
         setTimeout(() => {
             handleNext();
@@ -273,11 +273,12 @@ const InvestmentProfiler: React.FC = () => {
 
     const handleNext = () => {
         if (currentStep < visibleQuestions.length - 1) {
-            setCurrentStep(prev => prev + 1);
+            setProfilerStep(currentStep + 1);
         } else {
             handleGenerate();
         }
     };
+
 
     const handleGenerate = async () => {
         setLoading(true);
@@ -354,12 +355,13 @@ const InvestmentProfiler: React.FC = () => {
 
                     <div className="flex justify-between items-center mt-8">
                         <button
-                            onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+                            onClick={() => setProfilerStep(Math.max(0, currentStep - 1))}
                             disabled={currentStep === 0}
                             className="btn btn-outline px-8 rounded-xl border-[var(--outline-variant)] text-[var(--on-surface-variant)] disabled:opacity-0"
                         >
                             <ChevronLeft className="w-4 h-4" /> Previous
                         </button>
+
                         
                         <button
                             onClick={handleNext}

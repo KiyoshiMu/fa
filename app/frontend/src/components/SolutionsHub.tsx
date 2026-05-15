@@ -33,11 +33,12 @@ const SolutionsHub: React.FC = () => {
     };
 
     // Dynamic Calculations
-    const targetAmount = state.goal?.targetAmount || 150000;
+    const targetAmount = state.goal?.desiredDownPayment || 150000;
     const currentSavings = state.goal?.currentSavings || 25000;
     const annualRate = state.profile?.rate || 0.055;
     const monthlyRate = annualRate / 12;
     const months = horizon * 12;
+
 
     const calculatePMT = (fv: number, pv: number, r: number, n: number) => {
         if (n <= 0) return 0;

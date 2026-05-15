@@ -120,10 +120,8 @@ const CategorySelector: React.FC<{
 };
 
 const CashFlowHub: React.FC = () => {
-    const { state, setCashFlow, setStep } = useFinancial();
-    const [transactions, setTransactions] = useState<Transaction[]>([
-        { id: '1', date: '2026-04-18', description: 'Salary', amount: 5000, category: 'Income' }
-    ]);
+    const { state, setCashFlow, setStep, setTransactions } = useFinancial();
+    const transactions = state.transactions;
     const [aiInput, setAiInput] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
@@ -135,7 +133,7 @@ const CashFlowHub: React.FC = () => {
         }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept: {
@@ -144,7 +142,7 @@ const CashFlowHub: React.FC = () => {
             'image/*': ['.png', '.jpg', '.jpeg']
         },
         multiple: false
-    } as any);
+    });
 
     const handleAddTransaction = () => {
         const newTx: Transaction = {
@@ -168,6 +166,7 @@ const CashFlowHub: React.FC = () => {
         }
         setTransactions(transactions.map(t => t.id === id ? { ...t, [field]: finalValue } : t));
     };
+
 
     const handleAnalyze = async () => {
         setLoading(true);
@@ -233,7 +232,7 @@ const CashFlowHub: React.FC = () => {
                                 isDragActive ? 'border-[var(--vibrant-teal)] bg-[var(--vibrant-teal)]/5' : 'border-[var(--outline-variant)] hover:border-[var(--vibrant-teal)] hover:bg-[var(--surface-container-low)]'
                             }`}
                         >
-                            <input {...getInputProps() as any} />
+                            <input {...getInputProps()} />
                             <div className="p-4 bg-[var(--surface-container-low)] rounded-2xl text-[var(--vibrant-teal)] mb-4 group-hover:scale-110 transition-transform duration-500">
                                 <Upload className="w-8 h-8" />
                             </div>
