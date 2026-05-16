@@ -4,7 +4,6 @@ import {
   Target, 
   Settings, 
   HelpCircle,
-  TrendingUp,
   Leaf,
   RefreshCw,
   ShieldCheck,

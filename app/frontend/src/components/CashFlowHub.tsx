@@ -142,7 +142,7 @@ const CashFlowHub: React.FC = () => {
             'image/*': ['.png', '.jpg', '.jpeg']
         },
         multiple: false
-    });
+    } as any);
 
     const handleAddTransaction = () => {
         const newTx: Transaction = {
@@ -232,7 +232,7 @@ const CashFlowHub: React.FC = () => {
                                 isDragActive ? 'border-[var(--vibrant-teal)] bg-[var(--vibrant-teal)]/5' : 'border-[var(--outline-variant)] hover:border-[var(--vibrant-teal)] hover:bg-[var(--surface-container-low)]'
                             }`}
                         >
-                            <input {...getInputProps()} />
+                            <input {...getInputProps() as any} />
                             <div className="p-4 bg-[var(--surface-container-low)] rounded-2xl text-[var(--vibrant-teal)] mb-4 group-hover:scale-110 transition-transform duration-500">
                                 <Upload className="w-8 h-8" />
                             </div>

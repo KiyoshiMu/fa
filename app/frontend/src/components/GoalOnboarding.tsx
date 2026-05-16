@@ -8,8 +8,8 @@ import {
     Zap
 } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
-import type { PropertyType, PayFrequency } from '../FinancialContext';
-import { calculateCMHC } from '../lib/mortgageUtils';
+import type { PropertyType, PayFrequency, AppState } from '../FinancialContext';
+import { calculateCMHC, PROPERTY_MEDIANS, calculateMinDP } from '../lib/mortgageUtils';
 
 const GoalOnboarding: React.FC = () => {
     const { state, setGoal, setStep, setPayFrequency } = useFinancial();
@@ -24,6 +24,15 @@ const GoalOnboarding: React.FC = () => {
     const [dpStrategy, setDpStrategy] = useState<'5%' | '20%' | 'custom'>(
         savings / targetAmount <= 0.05 ? '5%' : savings / targetAmount >= 0.2 ? '20%' : 'custom'
     );
+ 
+    // Keep savings in sync with targetAmount when using percentage-based strategies
+    useEffect(() => {
+        if (dpStrategy === '5%') {
+            setSavings(calculateMinDP(targetAmount));
+        } else if (dpStrategy === '20%') {
+            setSavings(targetAmount * 0.2);
+        }
+    }, [targetAmount, dpStrategy]);
 
 
     // Sync local changes to global state for persistence
@@ -108,7 +117,18 @@ const GoalOnboarding: React.FC = () => {
                             {properties.map((prop) => (
                                 <button
                                     key={prop.type}
-                                    onClick={() => setPropertyType(prop.type)}
+                                    onClick={() => {
+                                        setPropertyType(prop.type);
+                                        const medianPrice = PROPERTY_MEDIANS[prop.type];
+                                        setTargetAmount(medianPrice);
+                                        
+                                        // Update savings if using a percentage strategy
+                                        if (dpStrategy === '5%') {
+                                            setSavings(calculateMinDP(medianPrice));
+                                        } else if (dpStrategy === '20%') {
+                                            setSavings(medianPrice * 0.2);
+                                        }
+                                    }}
                                     className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-4 transition-all duration-300 ${propertyType === prop.type
                                             ? 'border-[var(--vibrant-teal)] bg-[var(--surface-container-low)] shadow-sm'
                                             : 'border-[var(--outline-variant)] bg-white hover:border-[var(--vibrant-teal)]/50'
@@ -163,15 +183,18 @@ const GoalOnboarding: React.FC = () => {
                     <section className="card p-8 space-y-8">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Down Payment Strategy</h3>
                         <div className="flex p-1 bg-[var(--surface-container-low)] rounded-xl w-fit">
-                            {(['5% CMHC Insured', '20% Conventional', 'Custom Amount'] as const).map((s) => (
+                            {(['Min. CMHC Insured', '20% Conventional', 'Custom Amount'] as const).map((s) => (
                                 <button
                                     key={s}
                                     onClick={() => {
-                                        if (s.includes('5%')) { setDpStrategy('5%'); setSavings(targetAmount * 0.05); }
+                                        if (s.includes('Min.')) { 
+                                            setDpStrategy('5%'); 
+                                            setSavings(calculateMinDP(targetAmount)); 
+                                        }
                                         else if (s.includes('20%')) { setDpStrategy('20%'); setSavings(targetAmount * 0.2); }
                                         else setDpStrategy('custom');
                                     }}
-                                    className={`px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${(s.includes('5%') && dpStrategy === '5%') ||
+                                    className={`px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${(s.includes('Min.') && dpStrategy === '5%') ||
                                             (s.includes('20%') && dpStrategy === '20%') ||
                                             (s.includes('Custom') && dpStrategy === 'custom')
                                             ? 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)] shadow-sm'
@@ -219,6 +242,9 @@ const GoalOnboarding: React.FC = () => {
                                     <h4 className="text-sm font-black text-[var(--on-surface)]">CMHC Insurance Required</h4>
                                     <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
                                         Down payments under 20% require mortgage default insurance. A premium of <span className="text-[var(--on-surface)] font-bold">${cmhcInsurance.insuranceAmount.toLocaleString()}</span> ({(cmhcInsurance.premium * 100).toFixed(2)}%) will be added to your mortgage principal.
+                                    </p>
+                                    <p className="text-[10px] text-[var(--on-surface-variant)] mt-2 italic opacity-70">
+                                        * Minimum Down Payment in Canada: 5% on the first $500k + 10% on the remainder.
                                     </p>
                                 </div>
                             </div>
@@ -273,7 +299,9 @@ const GoalOnboarding: React.FC = () => {
 
                         <div className="space-y-6 mb-10">
                             <div className="space-y-1">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Target Down Payment ({(savings / targetAmount * 100).toFixed(0)}%)</div>
+                                <div className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                                    {dpStrategy === '5%' ? 'Min. Down Payment' : 'Target Down Payment'} ({(savings / targetAmount * 100).toFixed(1)}%)
+                                </div>
                                 <div className="text-4xl font-bold text-[var(--on-surface)]">${savings.toLocaleString()}</div>
                             </div>
 

@@ -4,7 +4,6 @@ import {
   MoreHorizontal, 
   CheckCircle2, 
   Edit2,
-  ChevronRight,
   Plus,
   Zap
 } from 'lucide-react';

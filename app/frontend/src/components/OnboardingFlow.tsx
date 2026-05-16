@@ -36,31 +36,43 @@ const OnboardingFlow: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-6">
-                        {steps.map((s, idx) => (
-                            <React.Fragment key={s.id}>
-                                <div className="flex items-center gap-2 group">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-500 ${
-                                        state.step > s.id 
-                                            ? 'bg-[var(--emerald)] text-white shadow-sm shadow-[var(--emerald)]/20' 
-                                            : state.step === s.id 
-                                                ? 'bg-[var(--vibrant-teal)] text-white shadow-lg shadow-[var(--vibrant-teal)]/30 scale-110' 
-                                                : 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]'
-                                    }`}>
-                                        {state.step > s.id ? <Check className="w-3 h-3 stroke-[4px]" /> : s.id}
-                                    </div>
-                                    <span className={`text-[10px] font-black uppercase tracking-widest transition-all duration-300 hidden lg:block ${
-                                        state.step === s.id ? 'text-[var(--on-surface)]' : 'text-[var(--on-surface-variant)] opacity-40'
-                                    }`}>
-                                        {s.label}
-                                    </span>
-                                </div>
-                                {idx < steps.length - 1 && (
-                                    <div className={`h-0.5 w-4 sm:w-8 rounded-full transition-colors duration-500 ${
-                                        state.step > s.id ? 'bg-[var(--emerald)]/40' : 'bg-[var(--outline-variant)]/20'
-                                    }`} />
-                                )}
-                            </React.Fragment>
-                        ))}
+                        {steps.map((s, idx) => {
+                            const isCompleted = state.step > s.id;
+                            const isActive = state.step === s.id;
+                            const isPast = s.id < state.step;
+
+                            return (
+                                <React.Fragment key={s.id}>
+                                    <button 
+                                        onClick={() => setStep(s.id)}
+                                        className={`flex items-center gap-2 group transition-all duration-300 ${
+                                            isPast ? 'cursor-pointer' : isActive ? 'cursor-default' : 'cursor-not-allowed opacity-50'
+                                        }`}
+                                        disabled={s.id > state.step}
+                                    >
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-500 ${
+                                            isCompleted 
+                                                ? 'bg-[var(--emerald)] text-white shadow-sm shadow-[var(--emerald)]/20 group-hover:bg-[var(--emerald)] group-hover:scale-110' 
+                                                : isActive 
+                                                    ? 'bg-[var(--vibrant-teal)] text-white shadow-lg shadow-[var(--vibrant-teal)]/30 scale-110' 
+                                                    : 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]'
+                                        }`}>
+                                            {isCompleted ? <Check className="w-3 h-3 stroke-[4px]" /> : s.id}
+                                        </div>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest transition-all duration-300 hidden lg:block ${
+                                            isActive ? 'text-[var(--on-surface)]' : 'text-[var(--on-surface-variant)] opacity-40 group-hover:opacity-100'
+                                        }`}>
+                                            {s.label}
+                                        </span>
+                                    </button>
+                                    {idx < steps.length - 1 && (
+                                        <div className={`h-0.5 w-4 sm:w-8 rounded-full transition-colors duration-500 ${
+                                            state.step > s.id ? 'bg-[var(--emerald)]/40' : 'bg-[var(--outline-variant)]/20'
+                                        }`} />
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
                     </div>
 
                     <div className="hidden md:block">
