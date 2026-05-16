@@ -30,7 +30,7 @@ const netWorthData = [
 ];
 
 const Dashboard: React.FC = () => {
-  const { setStep } = useFinancial();
+  const { state, setStep } = useFinancial();
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -39,8 +39,8 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--vibrant-teal)] bg-[var(--vibrant-teal)]/10 px-3 py-1 rounded-full">Overview</span>
           </div>
-          <h2 className="display-lg text-[var(--on-surface)]">Welcome back, Sarah.</h2>
-          <p className="body-lg text-[var(--on-surface-variant)]">Here is an overview of your financial progress today.</p>
+          <h2 className="display-lg text-[var(--on-surface)]">Welcome back.</h2>
+          <p className="body-lg text-[var(--on-surface-variant)]">Here is an overview of your financial architecture.</p>
         </div>
         <button className="btn btn-secondary shadow-xl shadow-[var(--vibrant-teal)]/20 px-8 py-4">
           Schedule Review
@@ -128,44 +128,29 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Financial Journey Card */}
         <div className="card p-10 shadow-lg border-none">
-          <h4 className="headline-md mb-2">Financial Journey</h4>
-          <p className="body-md text-[var(--on-surface-variant)] mb-10">Complete these pillars to secure your roadmap.</p>
+          <h4 className="headline-md mb-2">Financial Roadmap</h4>
+          <p className="body-md text-[var(--on-surface-variant)] mb-10">Your foundation is secure. Monitor your progress below.</p>
           
-          <div className="space-y-8 relative">
-            <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-[var(--surface-container-high)]"></div>
-            
-            <div className="flex gap-6 relative z-10">
-              <div className="w-10 h-10 rounded-2xl bg-[var(--vibrant-teal)] flex items-center justify-center text-white shrink-0 shadow-lg shadow-[var(--vibrant-teal)]/20">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div className="pt-1">
-                <h5 className="text-sm font-black uppercase tracking-tight text-[var(--on-surface)]">1. Discovery & Onboarding</h5>
-                <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest mt-1">Completed Mar 12, 2024</p>
-              </div>
-            </div>
-
-            <div className="flex gap-6 relative z-10">
-              <div className="w-10 h-10 rounded-2xl border-2 border-[var(--vibrant-teal)] bg-white flex items-center justify-center text-[var(--vibrant-teal)] shrink-0 shadow-sm">
-                <span className="text-xs font-black">2</span>
-              </div>
-              <div className="flex-1 bg-[var(--surface-container-low)] p-6 rounded-2xl border border-[var(--outline-variant)] hover:bg-white hover:shadow-xl transition-all duration-300 group cursor-pointer" onClick={() => setStep(1)}>
-                <h5 className="text-sm font-black uppercase tracking-tight text-[var(--on-surface)] mb-1">Cash Flow Mapping</h5>
-                <p className="text-xs text-[var(--on-surface-variant)] mb-4 font-medium leading-relaxed">Connect remaining accounts to build a complete picture of your disposable income.</p>
-                <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[var(--vibrant-teal)] group-hover:gap-2 transition-all">
-                  Resume Action <ChevronRight className="w-3 h-3" />
+          <div className="space-y-6">
+            {[
+              { label: 'Baseline Audit', status: 'Verified', date: 'Just now', icon: CheckCircle2 },
+              { label: 'Goal Architecture', status: 'Active', date: 'Just now', icon: CheckCircle2 },
+              { label: 'Risk Profiler', status: 'Calculated', date: 'Just now', icon: CheckCircle2 },
+              { label: 'Investment Plan', status: 'Deployed', date: 'Just now', icon: CheckCircle2 },
+            ].map((step, i) => (
+              <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-container-low)]/50 border border-[var(--outline-variant)]/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-xl bg-[var(--emerald)]/10 text-[var(--emerald)]">
+                    <step.icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-[var(--on-surface)]">{step.label}</p>
+                    <p className="text-[10px] font-bold text-[var(--on-surface-variant)] uppercase tracking-tight">{step.status}</p>
+                  </div>
                 </div>
+                <span className="text-[10px] font-bold text-[var(--on-surface-variant)] opacity-40 uppercase">{step.date}</span>
               </div>
-            </div>
-
-            <div className="flex gap-6 relative z-10 opacity-30 grayscale">
-              <div className="w-10 h-10 rounded-2xl border-2 border-[var(--outline)] bg-white flex items-center justify-center text-[var(--on-surface-variant)] shrink-0">
-                <span className="text-xs font-black">3</span>
-              </div>
-              <div className="pt-2">
-                <h5 className="text-sm font-black uppercase tracking-tight text-[var(--on-surface)]">Risk Profiling</h5>
-                <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest mt-1">LOCKED</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -173,15 +158,15 @@ const Dashboard: React.FC = () => {
         <div className="card p-10 shadow-lg border-none flex flex-col group overflow-hidden">
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-5">
-              <div className="w-14 h-14 bg-[var(--surface-container-low)] rounded-2xl flex items-center justify-center text-[var(--vibrant-teal)] group-hover:bg-[var(--vibrant-teal)] group-hover:text-white transition-all duration-500">
+              <div className="w-14 h-14 bg-[var(--vibrant-teal)] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-[var(--vibrant-teal)]/20">
                 <Plus className="w-8 h-8" />
               </div>
               <div>
-                <h4 className="headline-md text-xl leading-none">First Home Downpayment</h4>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mt-2">Target: Q3 2026</p>
+                <h4 className="headline-md text-xl leading-none">{state.goal?.type || 'Financial'} Goal</h4>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mt-2">Target Horizon: {state.goal?.months || 36} Months</p>
               </div>
             </div>
-            <button className="p-3 text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)] hover:text-[var(--on-surface)] rounded-2xl transition-all">
+            <button className="p-3 text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)] hover:text-[var(--on-surface)] rounded-2xl transition-all" onClick={() => setStep(2)}>
               <Edit2 className="w-5 h-5" />
             </button>
           </div>
@@ -189,28 +174,33 @@ const Dashboard: React.FC = () => {
           <div className="space-y-6 flex-1 flex flex-col justify-center">
             <div className="flex items-end justify-between">
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-black text-[var(--on-surface)]">$45,000</span>
+                <span className="text-5xl font-black text-[var(--on-surface)]">${(state.goal?.currentSavings || 0).toLocaleString()}</span>
                 <span className="text-[var(--on-surface-variant)] text-xs font-black uppercase tracking-widest">saved</span>
               </div>
-              <span className="text-xs font-black text-[var(--on-surface-variant)] uppercase tracking-widest">$650k target</span>
+              <span className="text-xs font-black text-[var(--on-surface-variant)] uppercase tracking-widest">${(state.goal?.targetAmount || 0).toLocaleString()} target</span>
             </div>
             
             <div className="space-y-3">
               <div className="h-3 w-full bg-[var(--surface-container-high)] rounded-full overflow-hidden">
-                <div className="h-full bg-[var(--vibrant-teal)] shadow-[0_0_12px_rgba(13,148,136,0.3)] transition-all duration-1000" style={{width: '7%'}}></div>
+                <div 
+                  className="h-full bg-[var(--vibrant-teal)] shadow-[0_0_12px_rgba(13,148,136,0.3)] transition-all duration-1000" 
+                  style={{width: `${Math.min(100, ((state.goal?.currentSavings || 0) / (state.goal?.targetAmount || 1)) * 100)}%`}}
+                ></div>
               </div>
-              <p className="text-[10px] text-[var(--on-surface-variant)] font-black uppercase tracking-[0.1em] text-right">7% funded based on total property value</p>
+              <p className="text-[10px] text-[var(--on-surface-variant)] font-black uppercase tracking-[0.1em] text-right">
+                {Math.round(((state.goal?.currentSavings || 0) / (state.goal?.targetAmount || 1)) * 100)}% funded
+              </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-8 pt-10 mt-10 border-t border-[var(--outline-variant)]">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Monthly Savings</p>
-              <p className="text-2xl font-black text-[var(--on-surface)]">$1,250</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Monthly Contribution</p>
+              <p className="text-2xl font-black text-[var(--on-surface)]">${Math.round(state.goal?.contribution || 0).toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Return (EST)</p>
-              <p className="text-2xl font-black text-[var(--emerald)]">+4.2% YTD</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">Risk Profile</p>
+              <p className="text-2xl font-black text-[var(--emerald)]">{state.profile?.type || 'Moderate'}</p>
             </div>
           </div>
         </div>

@@ -414,13 +414,18 @@ const CashFlowHub: React.FC = () => {
                 </div>
             </div>
 
-            <div className="mt-12 pt-8 border-t border-[var(--outline-variant)] flex items-center justify-between">
-                <button 
-                    onClick={() => setStep(0)}
-                    className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] transition-all"
-                >
-                    <ChevronLeft className="w-4 h-4" /> Back to Dashboard
-                </button>
+            <div className="mt-12 pt-8 border-t border-[var(--outline-variant)] flex items-center justify-end">
+                {!state.onboardingComplete && (
+                  <div />
+                )}
+                {state.onboardingComplete && (
+                  <button 
+                      onClick={() => setStep(0)}
+                      className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] transition-all"
+                  >
+                      <ChevronLeft className="w-4 h-4" /> Back to Dashboard
+                  </button>
+                )}
 
                 <button 
                     onClick={() => setStep(2)}

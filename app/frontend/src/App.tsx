@@ -7,9 +7,20 @@ import CashFlowHub from './components/CashFlowHub';
 import GoalOnboarding from './components/GoalOnboarding';
 import InvestmentProfiler from './components/InvestmentProfiler';
 import SolutionsHub from './components/SolutionsHub';
+import OnboardingFlow from './components/OnboardingFlow';
 
 const MainContent: React.FC = () => {
-  const { state } = useFinancial();
+  const { state, setStep } = useFinancial();
+
+  if (!state.onboardingComplete) {
+    // If onboarding is not complete, we always show the onboarding flow
+    // and we ensure the step is at least 1 (the first onboarding step)
+    if (state.step === 0) {
+      setStep(1);
+      return null; // Let the next render handle it
+    }
+    return <OnboardingFlow />;
+  }
 
   const renderStep = () => {
     switch (state.step) {

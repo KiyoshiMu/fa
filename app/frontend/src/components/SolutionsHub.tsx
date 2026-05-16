@@ -22,7 +22,7 @@ import {
 } from 'recharts';
 
 const SolutionsHub: React.FC = () => {
-    const { state, setStep } = useFinancial();
+    const { state, setStep, completeOnboarding } = useFinancial();
     const [horizonMonths, setHorizonMonths] = useState(state.goal?.months || 36);
     const [isChecked, setIsChecked] = useState([false, false, false]);
 
@@ -403,7 +403,10 @@ const SolutionsHub: React.FC = () => {
                         ))}
                     </div>
 
-                    <button className="mt-auto w-full py-5 bg-[var(--secondary)] text-white rounded-xl font-black uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl shadow-[var(--vibrant-teal)]/10 flex items-center justify-center gap-3 group">
+                    <button 
+                        onClick={completeOnboarding}
+                        className="mt-auto w-full py-5 bg-[var(--secondary)] text-white rounded-xl font-black uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl shadow-[var(--vibrant-teal)]/10 flex items-center justify-center gap-3 group"
+                    >
                         Complete Plan Setup
                         <Rocket className="w-4 h-4 group-hover:-translate-y-1 group-hover:translate-x-1 transition-all" />
                     </button>

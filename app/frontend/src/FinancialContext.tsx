@@ -35,6 +35,7 @@ export interface AppState {
     } | null;
     profilerAnswers: Partial<QuestionnaireAnswers>;
     profilerStep: number;
+    onboardingComplete: boolean;
 }
 
 interface FinancialContextType {
@@ -47,6 +48,7 @@ interface FinancialContextType {
     setProfile: (profile: AppState['profile']) => void;
     setProfilerAnswers: (answers: Partial<QuestionnaireAnswers>) => void;
     setProfilerStep: (step: number) => void;
+    completeOnboarding: () => void;
     reset: () => void;
 }
 
@@ -72,7 +74,8 @@ const INITIAL_STATE: AppState = {
     },
     profile: null,
     profilerAnswers: {},
-    profilerStep: 0
+    profilerStep: 0,
+    onboardingComplete: false
 };
 
 
@@ -101,6 +104,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
     const setProfile = (profile: AppState['profile']) => setState(prev => ({ ...prev, profile }));
     const setProfilerAnswers = (profilerAnswers: Partial<QuestionnaireAnswers>) => setState(prev => ({ ...prev, profilerAnswers }));
     const setProfilerStep = (profilerStep: number) => setState(prev => ({ ...prev, profilerStep }));
+    const completeOnboarding = () => setState(prev => ({ ...prev, onboardingComplete: true, step: 0 }));
     
     const reset = () => {
         localStorage.removeItem(STORAGE_KEY);
@@ -118,6 +122,7 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
             setProfile, 
             setProfilerAnswers,
             setProfilerStep,
+            completeOnboarding,
             reset 
         }}>
             {children}
