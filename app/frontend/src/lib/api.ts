@@ -3,21 +3,21 @@ const API_BASE = (import.meta && import.meta.env && import.meta.env.VITE_API_BAS
 
 // Questionnaire Data Structures
 export interface QuestionnaireAnswers {
-  timeHorizon: string; // 'a' | 'b' | 'c' | 'd' | 'e'
-  knowledge: string;   // 'a' | 'b' | 'c' | 'd' | 'e'
-  objectives: string; // 'a' | 'b' | 'c' | 'd'
-  q4Points: number;
-  q5Points: number;
-  q6Points: number;
-  q7Points: number;
-  q8Points: number;
-  q9Points: number;
-  q10Points: number;
-  q11Points: number;
-  q12Points: number;
-  q13Points: number;
-  q14Points: number;
-  q15Points: number;
+  timeHorizon: string;        // Q1 (Linked)
+  knowledge: string;         // Q2 (Visible)
+  objectives: string;        // Q3 (Visible)
+  annualIncome: number;      // Q4 (Linked)
+  incomeStability: number;   // Q5 (Linked)
+  financialSituation: number; // Q6 (Visible)
+  netWorth: number;          // Q7 (Visible)
+  concentration: number;     // Q8 (Linked)
+  ageGroup: number;          // Q9 (Visible)
+  riskTolerance: number;     // Q10 (Visible)
+  tolerableLoss: number;     // Q11 (Visible)
+  psychology: number;        // Q12 (Visible)
+  outcomeAcceptability: number; // Q13 (Visible)
+  marketDrop: number;        // Q14 (Visible)
+  historicalComfort: number; // Q15 (Visible)
 }
 
 export type InvestmentProfile = 'Safety' | 'Very Conservative' | 'Conservative' | 'Moderate' | 'Aggressive' | 'Very Aggressive';
@@ -167,5 +167,25 @@ export const analyzeAdvisory = async (data: AdvisoryRequest): Promise<AdvisoryRe
         body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to analyze advisory path');
+    return response.json();
+};
+
+export const analyzeSavingsGoal = async (data: any) => {
+    const response = await fetch(`${API_BASE}/analyzer/savings-goal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to analyze savings goal');
+    return response.json();
+};
+
+export const analyzeRetirement = async (data: any) => {
+    const response = await fetch(`${API_BASE}/analyzer/retirement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to analyze retirement');
     return response.json();
 };

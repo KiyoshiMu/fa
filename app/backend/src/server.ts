@@ -4,6 +4,7 @@ import { calculateProfile, ScoringPolicy, QuestionnaireAnswers, getReturnRate, I
 import { AdvisoryService } from './services/AdvisoryService.js';
 import { calculatePMT } from './utils/financeUtils.js';
 import { analyzeTransactions, analyzeWithAI, analyzeWithFile, Transaction } from './services/cashflowService.js';
+import { AnalyzerService, SavingsGoalParams, RetirementParams } from './services/analyzerService.js';
 import multer from 'multer';
 
 const app = express();
@@ -157,6 +158,32 @@ app.post('/api/cashflow/analyze-file', upload.single('file'), async (req: Reques
 app.post('/api/advisory/analyze', (req: Request, res: Response) => {
     try {
         const result = AdvisoryService.analyze(req.body);
+        res.json(result);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Endpoint: Analyzer Flow - Savings Goal
+ */
+app.post('/api/analyzer/savings-goal', (req: Request, res: Response) => {
+    try {
+        const params = req.body as SavingsGoalParams;
+        const result = AnalyzerService.calculateSavingsGoal(params);
+        res.json(result);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * Endpoint: Analyzer Flow - Retirement
+ */
+app.post('/api/analyzer/retirement', (req: Request, res: Response) => {
+    try {
+        const params = req.body as RetirementParams;
+        const result = AnalyzerService.calculateRetirement(params);
         res.json(result);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
