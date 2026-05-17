@@ -1,37 +1,63 @@
-import React from 'react';
-import { 
-  Wallet, 
-  Target, 
-  Settings, 
+import React, { useState } from 'react';
+import {
+  Settings,
   HelpCircle,
   Leaf,
   RefreshCw,
-  ShieldCheck,
-  Zap,
   BarChart3,
-  Calendar
+  Calendar,
+  ChevronDown
 } from 'lucide-react';
 import { useFinancial } from '../FinancialContext';
 
 const Sidebar: React.FC = () => {
   const { state, setStep, reset } = useFinancial();
+  const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, step: 0 },
-    { id: 'cashflow', label: 'Cash Flow Hub', icon: Wallet, step: 1 },
-    { id: 'goal', label: 'Savings Planner', icon: Target, step: 2 },
-    { id: 'profiler', label: 'Risk Intelligence', icon: ShieldCheck, step: 3 },
-    { id: 'solutions', label: 'Deployment Hub', icon: Zap, step: 4 },
+    // Temporarily disabled to prevent complex updates without onboarding flow
+    // { id: 'cashflow', label: 'Cash Flow Hub', icon: Wallet, step: 1 },
+    // { id: 'goal', label: 'Savings Planner', icon: Target, step: 2 },
+    // { id: 'profiler', label: 'Risk Intelligence', icon: ShieldCheck, step: 3 },
+    // { id: 'solutions', label: 'Deployment Hub', icon: Zap, step: 4 },
   ];
 
   return (
     <aside className="w-72 h-screen flex flex-col bg-[var(--surface)] border-r border-[var(--outline-variant)] sticky top-0">
       <div className="p-8 pb-4">
-        <div className="flex items-center gap-3 mb-12">
-          <div className="w-10 h-10 bg-[var(--vibrant-teal)] rounded-xl flex items-center justify-center text-white shadow-lg shadow-[var(--vibrant-teal)]/20">
-            <Leaf className="w-6 h-6 fill-current" />
+        <div className="relative mb-12">
+          <div 
+            className="flex items-center gap-3 cursor-pointer group"
+            onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
+          >
+            <div className="w-10 h-10 bg-[var(--vibrant-teal)] rounded-xl flex items-center justify-center text-white shadow-lg shadow-[var(--vibrant-teal)]/20">
+              <Leaf className="w-6 h-6 fill-current" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold tracking-tight text-[var(--on-surface)]">Lumina Wealth</h1>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-[var(--on-surface-variant)] transition-transform ${isSwitcherOpen ? 'rotate-180' : ''}`} />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-[var(--on-surface)]">Lumina Wealth</h1>
+
+          {isSwitcherOpen && (
+            <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-lg border border-[var(--outline-variant)] py-2 z-50">
+              <button 
+                onClick={() => { setIsSwitcherOpen(false); window.location.href = '/'; }}
+                className="w-full text-left px-4 py-2 hover:bg-[var(--surface-container-low)] text-[var(--on-surface)] font-semibold text-sm flex items-center gap-2 bg-[#86f2e4]/10 text-[#006f66]"
+              >
+                <div className="w-2 h-2 rounded-full bg-[var(--vibrant-teal)]"></div>
+                Advisory Flow
+              </button>
+              <button 
+                onClick={() => { setIsSwitcherOpen(false); window.location.href = '/analyzer'; }}
+                className="w-full text-left px-4 py-2 hover:bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] font-semibold text-sm flex items-center gap-2"
+              >
+                <div className="w-2 h-2 rounded-full bg-transparent"></div>
+                Analyzer Flow
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="p-5 rounded-2xl bg-gradient-to-br from-[var(--vibrant-teal)]/10 to-transparent border border-[var(--vibrant-teal)]/20 shadow-sm mb-8 relative overflow-hidden group">
@@ -41,22 +67,22 @@ const Sidebar: React.FC = () => {
               <span className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Plan Health</span>
               <span className="text-[10px] font-black text-[var(--emerald)] bg-[var(--emerald)]/10 px-2 py-0.5 rounded">Optimal</span>
             </div>
-            
+
             <div className="flex items-end gap-2">
               <span className="text-3xl font-black text-[var(--on-surface)]">92</span>
               <span className="text-[10px] font-bold text-[var(--on-surface-variant)] mb-1.5 uppercase">Score</span>
             </div>
 
             <div className="h-1.5 w-full bg-[var(--surface-container)] rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-[var(--emerald)] transition-all duration-1000" 
+              <div
+                className="h-full bg-[var(--emerald)] transition-all duration-1000"
                 style={{ width: `92%` }}
               />
             </div>
-            
+
             <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--on-surface-variant)]">
               <Calendar className="w-3 h-3" />
-              <span>Next Audit: June 1, 2024</span>
+              <span>Next Audit: June 1, 2026</span>
             </div>
           </div>
         </div>
@@ -70,11 +96,10 @@ const Sidebar: React.FC = () => {
             <button
               key={item.id}
               onClick={() => setStep(item.step)}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-[var(--radius-lg)] transition-all duration-300 group ${
-                isActive 
-                  ? 'bg-[#86f2e4] text-[#006f66] font-bold shadow-sm' 
-                  : 'text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)] hover:text-[var(--on-surface)]'
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-[var(--radius-lg)] transition-all duration-300 group ${isActive
+                ? 'bg-[#86f2e4] text-[#006f66] font-bold shadow-sm'
+                : 'text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)] hover:text-[var(--on-surface)]'
+                }`}
             >
               <item.icon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
               <span className="text-sm tracking-tight">{item.label}</span>
@@ -92,7 +117,7 @@ const Sidebar: React.FC = () => {
           <HelpCircle className="w-5 h-5" />
           <span className="text-sm font-semibold">Support</span>
         </button>
-        <button 
+        <button
           onClick={() => {
             if (confirm('Are you sure you want to restart your journey? All current progress will be reset.')) {
               reset();

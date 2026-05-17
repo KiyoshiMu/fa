@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FinancialProvider, useFinancial } from './FinancialContext';
+import { AnalyzerProvider } from './components/Analyser/AnalyzerContext';
+import AnalyzerLayout from './components/Analyser/AnalyzerLayout';
 import Sidebar from './components/Sidebar';
 import TopHeader from './components/TopHeader';
 import Dashboard from './components/Dashboard';
@@ -53,6 +55,22 @@ const MainContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const [path, setPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handlePopState = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  if (path === '/analyzer') {
+    return (
+      <AnalyzerProvider>
+        <AnalyzerLayout />
+      </AnalyzerProvider>
+    );
+  }
+
   return (
     <FinancialProvider>
       <MainContent />

@@ -169,3 +169,23 @@ export const analyzeAdvisory = async (data: AdvisoryRequest): Promise<AdvisoryRe
     if (!response.ok) throw new Error('Failed to analyze advisory path');
     return response.json();
 };
+
+export const analyzeSavingsGoal = async (data: any) => {
+    const response = await fetch(`${API_BASE}/analyzer/savings-goal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to analyze savings goal');
+    return response.json();
+};
+
+export const analyzeRetirement = async (data: any) => {
+    const response = await fetch(`${API_BASE}/analyzer/retirement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to analyze retirement');
+    return response.json();
+};

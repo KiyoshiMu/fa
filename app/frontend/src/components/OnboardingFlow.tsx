@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useFinancial } from '../FinancialContext';
 import CashFlowHub from './CashFlowHub';
 import GoalOnboarding from './GoalOnboarding';
 import InvestmentProfiler from './InvestmentProfiler';
 import SolutionsHub from './SolutionsHub';
-import { Leaf, Check, RefreshCw } from 'lucide-react';
+import { Leaf, Check, RefreshCw, ChevronDown } from 'lucide-react';
 
 const OnboardingFlow: React.FC = () => {
     const { state, setStep, reset } = useFinancial();
+    const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
 
     const steps = [
         { id: 1, label: 'Financial Baseline', component: <CashFlowHub /> },
@@ -28,11 +29,36 @@ const OnboardingFlow: React.FC = () => {
             {/* Sticky Header */}
             <header className="sticky top-0 z-50 bg-[var(--surface)]/80 backdrop-blur-xl border-b border-[var(--outline-variant)]/30 px-6 py-4">
                 <div className="max-w-[1400px] mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[var(--vibrant-teal)] rounded-lg flex items-center justify-center text-white shadow-lg shadow-[var(--vibrant-teal)]/20">
-                            <Leaf className="w-5 h-5 fill-current" />
+                    <div className="relative">
+                        <div 
+                            className="flex items-center gap-3 cursor-pointer group"
+                            onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
+                        >
+                            <div className="w-8 h-8 bg-[var(--vibrant-teal)] rounded-lg flex items-center justify-center text-white shadow-lg shadow-[var(--vibrant-teal)]/20">
+                                <Leaf className="w-5 h-5 fill-current" />
+                            </div>
+                            <span className="text-lg font-bold tracking-tight text-[var(--on-surface)] hidden sm:block">Lumina Wealth</span>
+                            <ChevronDown className={`w-4 h-4 text-[var(--on-surface-variant)] transition-transform hidden sm:block ${isSwitcherOpen ? 'rotate-180' : ''}`} />
                         </div>
-                        <span className="text-lg font-bold tracking-tight text-[var(--on-surface)] hidden sm:block">Lumina Wealth</span>
+
+                        {isSwitcherOpen && (
+                            <div className="absolute top-full left-0 w-48 mt-2 bg-white rounded-xl shadow-lg border border-[var(--outline-variant)] py-2 z-50">
+                                <button 
+                                    onClick={() => { setIsSwitcherOpen(false); window.location.href = '/'; }}
+                                    className="w-full text-left px-4 py-2 hover:bg-[var(--surface-container-low)] text-[var(--on-surface)] font-semibold text-sm flex items-center gap-2 bg-[#86f2e4]/10 text-[#006f66]"
+                                >
+                                    <div className="w-2 h-2 rounded-full bg-[var(--vibrant-teal)]"></div>
+                                    Advisory Flow
+                                </button>
+                                <button 
+                                    onClick={() => { setIsSwitcherOpen(false); window.location.href = '/analyzer'; }}
+                                    className="w-full text-left px-4 py-2 hover:bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] font-semibold text-sm flex items-center gap-2"
+                                >
+                                    <div className="w-2 h-2 rounded-full bg-transparent"></div>
+                                    Analyzer Flow
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-6">
