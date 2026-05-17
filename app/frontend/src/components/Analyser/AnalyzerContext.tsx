@@ -69,6 +69,7 @@ interface AnalyzerContextType {
   setStep: (step: AnalyzerStep) => void;
   updateSavingsGoal: (data: Partial<AnalyzerState['savingsGoalInput']>) => void;
   updateRetirement: (data: Partial<AnalyzerState['retirementInput']>) => void;
+  resetCurrent: () => void;
 }
 
 const AnalyzerContext = createContext<AnalyzerContextType | undefined>(undefined);
@@ -91,8 +92,18 @@ export const AnalyzerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const updateRetirement = (data: Partial<AnalyzerState['retirementInput']>) => 
     setState(prev => ({ ...prev, retirementInput: { ...prev.retirementInput, ...data } }));
 
+  const resetCurrent = () => {
+    setState(prev => {
+      if (prev.step === 'savings-goal') {
+        return { ...prev, savingsGoalInput: defaultState.savingsGoalInput };
+      } else {
+        return { ...prev, retirementInput: defaultState.retirementInput };
+      }
+    });
+  };
+
   return (
-    <AnalyzerContext.Provider value={{ state, setStep, updateSavingsGoal, updateRetirement }}>
+    <AnalyzerContext.Provider value={{ state, setStep, updateSavingsGoal, updateRetirement, resetCurrent }}>
       {children}
     </AnalyzerContext.Provider>
   );

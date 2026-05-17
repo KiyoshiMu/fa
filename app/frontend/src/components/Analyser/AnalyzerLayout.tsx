@@ -5,7 +5,7 @@ import SavingsGoalCalculator from './SavingsGoalCalculator';
 import RetirementCalculator from './RetirementCalculator';
 
 const AnalyzerLayout: React.FC = () => {
-  const { state, setStep } = useAnalyzer();
+  const { state, setStep, resetCurrent } = useAnalyzer();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
 
   const navItems = [
@@ -76,15 +76,15 @@ const AnalyzerLayout: React.FC = () => {
         <div className="p-6 border-t border-[var(--outline-variant)]">
           <button
             onClick={() => {
-              if (confirm('Reset analyzer session?')) {
-                sessionStorage.removeItem('analyzerState');
-                window.location.reload();
+              const calculatorName = state.step === 'savings-goal' ? 'Savings Goal' : 'Retirement Planning';
+              if (confirm(`Reset all inputs for the ${calculatorName} calculator?`)) {
+                resetCurrent();
               }
             }}
             className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-all duration-200 mt-2"
           >
             <RefreshCw className="w-4 h-4" />
-            <span className="text-sm font-semibold">Reset Data</span>
+            <span className="text-sm font-semibold">Reset {state.step === 'savings-goal' ? 'Savings' : 'Retirement'} Data</span>
           </button>
         </div>
       </aside>

@@ -45,13 +45,13 @@ const GoalOnboarding: React.FC = () => {
                 desiredDownPayment: savings,
                 months,
                 hasFHSAOrTFSA: state.goal?.hasFHSAOrTFSA ?? false,
-                contribution: state.goal?.contribution ?? 0,
+                contribution: Math.max(0, Math.round(((targetAmount * (dpStrategy === '5%' ? 0.05 : dpStrategy === '20%' ? 0.2 : (savings / targetAmount))) + targetAmount * 0.015 - initialSavings) / (months * (payFreq === 'monthly' ? 1 : 2.166)))),
                 propertyType,
             });
             setPayFrequency(payFreq);
         }, 1000); // 1s debounce to avoid excessive storage writes
         return () => clearTimeout(timeout);
-    }, [propertyType, targetAmount, savings, months, payFreq, setGoal, setPayFrequency, state.goal?.type, state.goal?.hasFHSAOrTFSA, state.goal?.contribution, initialSavings]);
+    }, [propertyType, targetAmount, savings, months, payFreq, setGoal, setPayFrequency, state.goal?.type, state.goal?.hasFHSAOrTFSA, initialSavings, dpStrategy]);
 
 
 
@@ -83,8 +83,15 @@ const GoalOnboarding: React.FC = () => {
     };
 
     const handleContinue = () => {
-        updateGoal({ propertyType, targetAmount, currentSavings: savings, months });
-        setStep(3);
+        updateGoal({ 
+            propertyType, 
+            targetAmount, 
+            currentSavings: initialSavings, 
+            desiredDownPayment: savings, 
+            months,
+            contribution: requiredSavings
+        });
+        setStep(state.onboardingComplete ? 0 : 3);
     };
 
 
@@ -331,13 +338,22 @@ const GoalOnboarding: React.FC = () => {
                             <div className="text-[10px] font-bold text-[#006f66] opacity-60">for the next {(months / 12).toFixed(0)} years</div>
                         </div>
 
-                        <button
-                            onClick={handleContinue}
-                            className="w-full btn btn-secondary py-5 text-lg shadow-xl shadow-[var(--vibrant-teal)]/20 group"
-                        >
-                            Continue to Allocation
-                            <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                        </button>
+                        {state.onboardingComplete ? (
+                            <button
+                                onClick={handleContinue}
+                                className="w-full btn btn-primary py-5 text-lg shadow-xl shadow-[var(--vibrant-teal)]/20"
+                            >
+                                Save Changes
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleContinue}
+                                className="w-full btn btn-secondary py-5 text-lg shadow-xl shadow-[var(--vibrant-teal)]/20 group"
+                            >
+                                Continue to Allocation
+                                <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                            </button>
+                        )}
                     </div>
 
                     <div className="p-8 rounded-[2rem] bg-white border border-[var(--outline-variant)] flex gap-4">
@@ -357,10 +373,10 @@ const GoalOnboarding: React.FC = () => {
 
             <div className="mt-12 flex justify-between items-center pt-8 border-t border-[var(--outline-variant)]">
                 <button
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(state.onboardingComplete ? 0 : 1)}
                     className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] transition-all"
                 >
-                    <ChevronLeft className="w-4 h-4" /> Back to Cash Flow
+                    <ChevronLeft className="w-4 h-4" /> {state.onboardingComplete ? 'Back to Dashboard' : 'Back to Cash Flow'}
                 </button>
             </div>
         </div>
